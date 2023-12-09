@@ -138,7 +138,7 @@ describe("User", () => {
         const newEmail = 'yoloswaggins@yolo.com';
 
         let cookies;
-        let accessToken = await post('user/login', testUserJeff, (res)=>{
+        await post('user/login', testUserJeff, (res)=>{
             cookies=res.headers['set-cookie'];
             expect(res.statusCode).toEqual(200);
             return decodeURIComponent(res.headers['set-cookie'][0].split('=')[1].split(';')[0]);
@@ -178,39 +178,38 @@ describe("User", () => {
         const newEmail = 'jeff@jeffjeff.com';
 
         let cookies;
-        let accessToken = await post('user/login', testUserJeff, (res)=>{
+        await post('user/login', testUserJeff, (res)=>{
             cookies=res.headers['set-cookie'];
             return decodeURIComponent(res.headers['set-cookie'][0].split('=')[1].split(';')[0]);
         });
 
-        await post('user/getchangeemail', {accessToken}, (res) => {
+        await post('user/getchangeemail', {}, (res) => {
             expect(res.body.status).toBe('nochange');
         }, cookies);   
 
-        const verifyCode = await post('user/changeemail', {accessToken, newEmail: newEmail}, (res) => {
+        const verifyCode = await post('user/changeemail', {newEmail: newEmail}, (res) => {
             const emailSplit = mockNodemailer.sent[0].text.split(' ');
             return emailSplit[emailSplit.length-1];
         }, cookies);
 
-        await post('user/getchangeemail', {accessToken}, (res) => {
+        await post('user/getchangeemail', {}, (res) => {
             expect(res.body.status).toBe('verifyOld');
         }, cookies);
 
-        const newVerifyCode = await post('user/changeemail', {accessToken, verifyCode: verifyCode}, (res) => {
+        const newVerifyCode = await post('user/changeemail', {verifyCode: verifyCode}, (res) => {
             const emailSplit = mockNodemailer.sent[1].text.split(' ');
             return emailSplit[emailSplit.length-1];
         }, cookies);
 
-        await post('user/getchangeemail', {accessToken}, (res) => {
+        await post('user/getchangeemail', {}, (res) => {
             expect(res.body.status).toBe('verifyNew');
         }, cookies);
 
-        accessToken = await post('user/changeemail', {accessToken, verifyCode: newVerifyCode}, (res) => {
-            testUserJeff.email = decryptAccessToken(res.body.accessToken).email;
-            return res.body.accessToken;
+        await post('user/changeemail', {verifyCode: newVerifyCode}, (res) => {
+            testUserJeff.email = newEmail;
         }, cookies);
 
-        await post('user/getchangeemail', {accessToken}, (res) => {
+        await post('user/getchangeemail', {}, (res) => {
             expect(res.body.status).toBe('nochange');
         }, cookies);
         
