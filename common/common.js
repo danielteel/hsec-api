@@ -63,5 +63,8 @@ function isLegalPassword(password){
     return failFor.trim();
 }
 
+function generateVerificationCode(){
+    return crypto.randomBytes(16).toString("hex");
+}
 
-module.exports = {getHash, verifyFields, randomInt: crypto.randomInt, isLegalPassword};
+module.exports = {getHash, verifyFields, generateVerificationCode, isLegalPassword};

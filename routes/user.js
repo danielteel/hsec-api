@@ -1,17 +1,13 @@
 const express = require('express');
 const { getKnex } = require('../database');
-const {getHash, verifyFields, randomInt, isLegalPassword} = require('../common/common');
+const {getHash, verifyFields, generateVerificationCode, isLegalPassword} = require('../common/common');
 const {generateAccessToken, authenticate} = require('../common/accessToken');
 const sendMail = require('../common/sendMail');
+
 
 const router = express.Router();
 module.exports = router;
 
-
-
-function generateVerificationCode(){
-    return String(randomInt(111111111, 999999999));
-}
 
 
 
