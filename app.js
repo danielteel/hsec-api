@@ -25,6 +25,7 @@ app.use(cookieparser());
 app.use(express.json());
 app.use((req, res, next)=>{
     console.log(req.method, req.originalUrl, req.ip);
+    next();
 });
 app.use('/user', require('./routes/user'));
 
