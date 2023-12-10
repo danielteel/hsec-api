@@ -53,4 +53,4 @@ async function requestCreateUser(post){
     });
 }
 
-module.exports={requestHelper, closeKnex, waitForKnex, requestCreateUser};
+module.exports={requestHelper, closeKnex, waitForKnex, requestCreateUser, getKnex};

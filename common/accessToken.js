@@ -82,7 +82,8 @@ async function getUserFromToken(token){
     const knex=getKnex();
     const [user] = await knex('users').select('*').where({id: token.id, session: token.session});
     if (user){
-        return {id: user.id, email: user.email};
+        const [role] = await knex('roles').select('*').where({id: user.role_id});
+        return {id: user.id, email: user.email, permissions:{admin: role.admin, manage: role.manage, view: role.view}};
     }
     return null;
 }

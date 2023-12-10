@@ -8,12 +8,6 @@ exports.seed = async function(knex) {
     await knex('unverified_users').del();
     await knex('crypto').del();
 
-    const adminPass = generateVerificationCode(8);
-    const adminUser = 'admin_'+generateVerificationCode(2);
-    console.log('admin credentials');
-    console.log('user', adminUser);
-    console.log('password', adminPass);
-
     const roles = await knex('roles').insert([
         {
             rolename: 'admin',
@@ -41,6 +35,13 @@ exports.seed = async function(knex) {
         }
     ]).returning('*');
     
-    const role_id = roles.find(role => role.rolename==='admin').id;
-    await knex('users').insert({email: adminUser, pass_hash: getHash(adminPass), role_id});
+    if (process.env.NODE_ENV!=='test'){
+        const adminPass = generateVerificationCode(8);
+        const adminUser = 'admin_'+generateVerificationCode(2);
+        console.log('admin credentials');
+        console.log('user', adminUser);
+        console.log('password', adminPass);
+        const role_id = roles.find(role => role.rolename==='admin').id;
+        await knex('users').insert({email: adminUser, pass_hash: getHash(adminPass), role_id});
+    }
 };
