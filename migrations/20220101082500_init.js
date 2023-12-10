@@ -16,23 +16,6 @@ exports.up = function(knex) {
         table.string('verification_code');
     }).then( () => {} );
 
-    knex.schema.createTable('users', table => {
-        table.increments('id');
-        table.timestamp('created_at').defaultTo(knex.fn.now());
-        table.string('email').unique().notNullable();
-        table.integer('session').defaultTo(0);
-        table.string('pass_hash');
-    }).then( () => {} );
-
-    knex.schema.createTable('user_role', table=>{
-        table.increments('id');
-        table.integer('user_id').unique().notNullable();
-        table.integer('role_id').notNullable();
-
-        table.foreign('user_id').references('id').inTable('users');
-        table.foreign('role_id').references('id').inTable('roles');
-    }).then(()=>{});
-
     knex.schema.createTable('roles', table => {
         table.increments('id');
         table.string('rolename');
@@ -41,6 +24,15 @@ exports.up = function(knex) {
         table.boolean('view');
     }).then(()=>{});
 
+    knex.schema.createTable('users', table => {
+        table.increments('id');
+        table.timestamp('created_at').defaultTo(knex.fn.now());
+        table.string('email').unique().notNullable();
+        table.integer('session').defaultTo(0);
+        table.string('pass_hash');
+        table.integer('role_id').notNullable();
+        table.foreign('role_id').references('id').inTable('roles');
+    }).then( () => {} );
 
     knex.schema.createTable('user_changepassword', table => {
         table.increments('id');

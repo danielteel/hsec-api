@@ -14,8 +14,7 @@ exports.seed = async function(knex) {
     console.log('user', adminUser);
     console.log('password', adminPass);
 
-    await knex('users').insert({email: adminUser, pass_hash: getHash(adminPass)})
-    await knex('roles').insert([
+    const roles = await knex('roles').insert([
         {
             rolename: 'admin',
             admin: true,
@@ -33,6 +32,15 @@ exports.seed = async function(knex) {
             admin: false,
             manage: false,
             view: true
+        },
+        {
+            rolename: 'unverified',
+            admin: false,
+            manage: false,
+            view: false
         }
-    ]);
+    ]).returning('*');
+    
+    const role_id = roles.find(role => role.rolename==='admin').id;
+    await knex('users').insert({email: adminUser, pass_hash: getHash(adminPass), role_id});
 };
