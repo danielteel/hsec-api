@@ -17,7 +17,7 @@ router.post('/passwordchange', async (req, res) => {
         if (!knex) throw "database not connected";
 
         const [fieldCheck, email, newPassword, confirmCode] = verifyFields(req.body, ['email:string:*:lt', 'newPassword:string:?', 'confirmCode:string:?:lt']);
-        if (fieldCheck) return res.status(400).json({error: 'failed field check: '+fieldCheck})
+        if (fieldCheck) return res.status(400).json('failed field check: '+fieldCheck)
         const newPassHash=getHash(newPassword);
 
 
@@ -28,12 +28,12 @@ router.post('/passwordchange', async (req, res) => {
             if (changePasswordRecord && newPassHash && confirmCode===changePasswordRecord.confirmation_code){//User is changing password now  
                 const passwordCheck = isLegalPassword(newPassword);
                 if (passwordCheck){
-                    return res.status(400).json({error: 'password is not legal. '+passwordCheck});
+                    return res.status(400).json('password is not legal. '+passwordCheck);
                 }else{
                     await knex('user_changepassword').delete().where({user_id: user.id});//delete existing changepassword record
                     await knex('users').update({pass_hash: newPassHash}).where({id: user.id});//update pass_hash with new
                     
-                    return res.status(201).json({message: 'success'});
+                    return res.status(201).json('success');
                 }
             }else{
                 if (changePasswordRecord) await knex('user_changepassword').delete().where({user_id: user.id});//delete existing changepassword record
@@ -41,15 +41,15 @@ router.post('/passwordchange', async (req, res) => {
                 await knex('user_changepassword').insert([{user_id: user.id, confirmation_code: confirmationCode}]);//add new changepassword record
                 sendMail(email, "Password change", "A password reset request was sent for this email address, use the following confirmation code to reset it. "+confirmationCode);
                 
-                return res.status(200).json({message: 'check email'});
+                return res.status(200).json('check email');
             }
         }
 
         //User wasnt found, but give back the same response as if there was one found so its harded to poke around finding emails
-        return res.status(200).json({message: 'check email'});
+        return res.status(200).json('check email');
     } catch (e) {
         console.error('ERROR /passwordchange', req.body, e);
-        return res.status(400).json({error: 'failed'});
+        return res.status(400).json('failed');
     }
 });
 
@@ -60,20 +60,20 @@ router.post('/getchangeemail', authenticate, async (req, res) => {
         if (!knex) throw "database not connected";
 
         const [fieldCheck, user] = verifyFields(req.body, ['user:any']);
-        if (fieldCheck) return res.status(400).json({error: 'failed field check: '+fieldCheck})
+        if (fieldCheck) return res.status(400).json('failed field check: '+fieldCheck)
 
         const [changeEmailRecord] = await knex('user_changeemail').select('*').where({user_id: user.id});
         if (changeEmailRecord){
             if (changeEmailRecord.step==='verifyOld'){
-                return res.status(200).json({status: 'verifyOld'});
+                return res.status(200).json('verifyOld');
             }else if (changeEmailRecord.step==='verifyNew'){
-                return res.status(200).json({status: 'verifyNew'});
+                return res.status(200).json('verifyNew');
             }
         }
-        return res.status(200).json({status: 'nochange'});
+        return res.status(200).json('nochange');
     } catch (e) {
         console.error('ERROR /getchangeemail', req.body, e);
-        return res.status(400).json({error: 'failed'});
+        return res.status(400).json('failed');
     }
 });
 
@@ -84,7 +84,7 @@ router.post('/changeemail', authenticate, async (req, res) => {
         if (!knex) throw "database not connected";
 
         const [fieldCheck, user, newEmail, verifyCode] = verifyFields(req.body, ['user:any', 'newEmail:string:?:lt', 'verifyCode:string:?:lt']);
-        if (fieldCheck) return res.status(400).json({error: 'failed field check: '+fieldCheck})
+        if (fieldCheck) return res.status(400).json('failed field check: '+fieldCheck)
 
         if (newEmail){//passing in newEmail means you want to start the process of changing emails
             await knex('user_changeemail').delete().where({user_id: user.id});//delete old change email record if it exists
@@ -93,7 +93,7 @@ router.post('/changeemail', authenticate, async (req, res) => {
             await knex('user_changeemail').insert([{user_id: user.id, new_email: newEmail, current_verification_code: newVerifyCode, new_email: newEmail, step: 'verifyOld'}]);
 
             sendMail(user.email, 'Verify change email', 'Change email request recieved, code to verify current email before changing is '+newVerifyCode);
-            return res.status(200).json({message: 'verify current email'});
+            return res.status(200).json('verify current email');
 
         }else{//newEmail wasnt passed, we must be on the verify steps
             const [changeEmailRecord] = await knex('user_changeemail').select('*').where({user_id: user.id});
@@ -104,24 +104,25 @@ router.post('/changeemail', authenticate, async (req, res) => {
                         await knex('user_changeemail').update({current_verification_code: newVerifyCode, step: 'verifyNew'}).where({id: changeEmailRecord.id});
 
                         sendMail(changeEmailRecord.new_email, 'Verify change email', 'Change email request recieved, code to verify new email before changing is '+newVerifyCode);
-                        return res.status(200).json({message: 'verify new email'});
+                        return res.status(200).json('verify new email');
                     }else if (changeEmailRecord.step==='verifyNew'){
                         await knex('users').update({email: changeEmailRecord.new_email}).where({id: changeEmailRecord.user_id});
                         await knex('user_changeemail').delete().where({user_id: user.id});//delete change email record if it exists
-                        return res.status(201).json({accessToken: generateAccessToken({email: changeEmailRecord.new_email})});
+                        
+                        return res.status(201).json(changeEmailRecord.new_email);
                     }else{
-                        return res.status(400).json({error: "unknown change email verify step"});
+                        return res.status(400).json("unknown change email verify step");
                     }
                 }else{
-                    return res.status(400).json({error: "invalid email or verification code"});
+                    return res.status(400).json("invalid email or verification code");
                 }
             }else{
-                return res.status(400).json({error: 'failed to provide new email'});
+                return res.status(400).json('failed to provide new email');
             }
         }
     } catch (e) {
         console.error('ERROR /changeemail', req.body, e);
-        return res.status(400).json({error: 'failed'});
+        return res.status(400).json('failed');
     }
 });
 
@@ -132,28 +133,35 @@ router.post('/login', async (req, res) => {
         if (!knex) throw "database not connected";
         
         const [fieldCheck, email, password] = verifyFields(req.body, ['email:string:*:lt', 'password:string']);
-        if (fieldCheck) return res.status(400).json({error: 'failed field check: '+fieldCheck})
+        if (fieldCheck) return res.status(400).json('failed field check: '+fieldCheck)
 
         const passHash = getHash(password);
 
         const [user] = await knex('users').select('*').where({email: email, pass_hash: passHash});
         if (user){
             if (user.email===email && user.pass_hash===passHash){
-                const accessToken = generateAccessToken({id: user.id, session: user.session});
+                const hashcess = generateVerificationCode();
+                const accessToken = generateAccessToken({id: user.id, session: user.session, hashcess});
                 res.cookie('accessToken', accessToken, {
-                    secure: true,
                     httpOnly: true,
-                    sameSite: 'lax'
+                    sameSite: 'lax',
+                    secure: true,
+                    domain: 'localhost'
                 });
-                return res.status(200).json({});
+                res.cookie('hashcess', getHash(hashcess), {
+                    sameSite: 'lax',
+                    secure: true,
+                    domain: 'localhost'
+                });
+                return res.status(200).json(null);
             }
         }
 
-        return res.status(400).json({error: "invalid email or password"});
+        return res.status(400).json("invalid email or password");
 
     } catch (e) {
         console.error('ERROR /login', req.body, e);
-        return res.status(400).json({error: 'failed'});
+        return res.status(400).json('failed');
     }
 });
 
@@ -165,31 +173,38 @@ router.post('/verifyemail', async (req, res) => {
 
         //Verify passed in data
         const [fieldCheck, email, verifyCode] = verifyFields(req.body, ['email:string:*:lt', 'verifyCode:string:*:lt']);
-        if (fieldCheck) return res.status(400).json({error: 'failed field check: '+fieldCheck})
+        if (fieldCheck) return res.status(400).json('failed field check: '+fieldCheck)
 
         const [unverifiedUser] = await knex('unverified_users').select(['*']).where({email: email, verification_code: verifyCode});
         if (!unverifiedUser){
-            return res.status(400).json({error: "invalid email or verification code"});//user not found
+            return res.status(400).json("invalid email or verification code");//user not found
         }else{
             if (unverifiedUser.verification_code!==verifyCode){
-                return res.status(400).json({error: "invalid email or verification code"});
+                return res.status(400).json("invalid email or verification code");
             }else{
                 const [{id: userId}] = await knex('users').insert([{email, pass_hash: unverifiedUser.pass_hash, session: 0}], 'id');
                 
                 await knex('unverified_users').delete().where({email: email, verification_code: verifyCode});
                 
-                const accessToken = generateAccessToken({id: userId, session: 0});
+                const hashcess = generateVerificationCode();
+                const accessToken = generateAccessToken({id: userId, session: 0, hashcess});
                 res.cookie('accessToken', accessToken, {
-                    secure: true,
                     httpOnly: true,
-                    sameSite: 'lax'
+                    sameSite: 'lax',
+                    secure: true,
+                    domain: 'localhost'
                 });
-                return res.status(200).json({id: userId});
+                res.cookie('hashcess', getHash(hashcess), {
+                    sameSite: 'lax',
+                    secure: true,
+                    domain: 'localhost'
+                });
+                return res.status(200).json(userId);
             }
         }
     } catch (e) {
         console.error('ERROR /verifyemail', req.body, e);
-        return res.status(400).json({error: 'failed'});
+        return res.status(400).json('failed');
     }
 });
 
@@ -200,10 +215,10 @@ router.post('/create', async (req, res)=>{
         if (!knex) throw "database not connected";
 
         const [fieldCheck, email, password] = verifyFields(req.body, ['email:string:*:lt', 'password:string']);
-        if (fieldCheck) return res.status(400).json({error: 'failed field check: '+fieldCheck})
+        if (fieldCheck) return res.status(400).json('failed field check: '+fieldCheck)
 
         const passwordCheck = isLegalPassword(password);
-        if (passwordCheck) return res.status(400).json({error: 'password is not legal. '+passwordCheck});
+        if (passwordCheck) return res.status(400).json('password is not legal. '+passwordCheck);
 
 
         //Check against existing user emails
@@ -227,10 +242,39 @@ router.post('/create', async (req, res)=>{
             await sendMail(email, 'Email verify code', 'Resending email verification pin '+unverifiedUser.verification_code);
         }
         
-        return res.status(201).json({email: email});
+        return res.status(201).json(email);
 
     } catch (e) {
         console.error('ERROR /create', req.body, e);
-        return res.status(400).json({error: 'failed'});
+        return res.status(400).json('failed');
+    }
+});
+
+router.get('/me', authenticate, async (req, res) => {
+    try {
+        res.status(200).json(req.body.user);
+    } catch (e) {
+        console.error('ERROR /me', req.body, e);
+        return res.status(400).json('failed');
+    }
+});
+
+router.post('/logout', authenticate, async (req, res) => {
+    try {
+        res.clearCookie('accessToken', {
+            httpOnly: true,
+            sameSite: 'lax',
+            secure: true,
+            domain: 'localhost'
+        });
+        res.clearCookie('hashcess', {
+            sameSite: 'lax',
+            secure: true,
+            domain: 'localhost'
+        });
+        return res.status(200).json(null);
+    } catch (e) {
+        console.error('ERROR /logout', e);
+        return res.status(400).json('failed');
     }
 });

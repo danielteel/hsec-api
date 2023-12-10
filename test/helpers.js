@@ -1,12 +1,12 @@
 const {getKnex} = require('../database');
 const {mockNodemailer} = require('./mocks/nodemailer');
 
-function requestPost(request, endPoint, dataToSend, callback, cookies=[]){
+function requestHelper(request, method, endPoint, dataToSend, callback, cookies=[]){
     endPoint=endPoint;
 
     let resolve, reject;
     const promise = new Promise( (res, rej) => {resolve=res; reject=rej;});
-    request.post('/'+endPoint)
+    request[method]('/'+endPoint)
         .set('Cookie', cookies)
         .send(dataToSend)
         .then(res => {
@@ -19,6 +19,7 @@ function requestPost(request, endPoint, dataToSend, callback, cookies=[]){
         .catch(err => {throw err});
     return promise;
 }
+
 
 function waitForKnex(callback){
     async function checkKnex(){
@@ -52,4 +53,4 @@ async function requestCreateUser(post){
     });
 }
 
-module.exports={requestPost, closeKnex, waitForKnex, requestCreateUser};
+module.exports={requestHelper, closeKnex, waitForKnex, requestCreateUser};

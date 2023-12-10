@@ -1,3 +1,4 @@
+const {getHash} = require('../common/common');
 
 exports.seed = async function(knex) {
     await knex('user_changeemail').del();
@@ -7,7 +8,7 @@ exports.seed = async function(knex) {
     await knex('unverified_users').del();
     await knex('crypto').del();
 
-
+    await knex('users').insert({email: 'danjteel@gmail.com', pass_hash: getHash('1qaz!QAZ')})
     await knex('roles').insert([
         {
             rolename: 'admin',

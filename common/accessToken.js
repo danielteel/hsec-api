@@ -1,5 +1,6 @@
-const { randomUUID, generateKeyPairSync, constants, privateEncrypt, publicDecrypt } = require('crypto');
-const { getKnex } = require('../database');
+const {randomUUID, generateKeyPairSync, constants, privateEncrypt, publicDecrypt} = require('crypto');
+const {getKnex} = require('../database');
+const {getHash} = require('./common');
 
 let accessToken = null;
 
@@ -91,13 +92,27 @@ async function authenticate(req, res, next){
     if (req.body.user) req.body.user=null;
     const accessToken = decryptAccessToken(req.cookies['accessToken']);
     if (accessToken){
-        const user=await getUserFromToken(accessToken);
-        if (user){
-            req.body.user=user;
-            return next();
+        if (getHash(accessToken.hashcess) === req.cookies['hashcess']){
+            const user=await getUserFromToken(accessToken);
+            if (user){
+                req.body.user=user;
+                return next();
+            }
+        }else{
+            res.clearCookie('accessToken', {
+                httpOnly: true,
+                sameSite: 'lax',
+                secure: true,
+                domain: 'localhost'
+            });
+            res.clearCookie('hashcess', {
+                sameSite: 'lax',
+                secure: true,
+                domain: 'localhost'
+            });
         }
     }
-    return res.status(401).json({error: 'log in'});
+    return res.status(401).json('log in');
 }
 
 

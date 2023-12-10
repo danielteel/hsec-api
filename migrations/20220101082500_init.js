@@ -20,7 +20,7 @@ exports.up = function(knex) {
         table.increments('id');
         table.timestamp('created_at').defaultTo(knex.fn.now());
         table.string('email').unique().notNullable();
-        table.integer('session');
+        table.integer('session').defaultTo(0);
         table.string('pass_hash');
     }).then( () => {} );
 

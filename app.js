@@ -16,7 +16,7 @@ const knexConfig = require('./config/knex-configs')[forceSqlite ? 'test' : proce
 const {initAccessToken} = require('./common/accessToken');
 
 const app = express();
-app.use(cors());
+app.use(cors({origin: 'http://localhost:3000', credentials: true}));
 app.use(helmet());
 app.use(cookieparser());
 app.use(express.json());
