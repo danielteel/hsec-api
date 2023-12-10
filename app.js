@@ -23,7 +23,9 @@ app.use(cors({origin: 'http://'+domain, credentials: true}));
 app.use(helmet());
 app.use(cookieparser());
 app.use(express.json());
-
+app.use((req, res, next)=>{
+    console.log(req.method, req.originalUrl, req.ip);
+});
 app.use('/user', require('./routes/user'));
 
 

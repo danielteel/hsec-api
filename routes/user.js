@@ -14,6 +14,7 @@ module.exports = router;
 
 
 router.post('/passwordchange', async (req, res) => {
+
     try {
         const knex=getKnex();
         if (!knex) throw "database not connected";
