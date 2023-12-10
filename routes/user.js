@@ -4,6 +4,8 @@ const {getHash, verifyFields, generateVerificationCode, isLegalPassword} = requi
 const {generateAccessToken, authenticate} = require('../common/accessToken');
 const sendMail = require('../common/sendMail');
 
+const domain = require('../config/domain');
+
 
 const router = express.Router();
 module.exports = router;
@@ -146,12 +148,12 @@ router.post('/login', async (req, res) => {
                     httpOnly: true,
                     sameSite: 'lax',
                     secure: true,
-                    domain: 'localhost'
+                    domain: domain
                 });
                 res.cookie('hashcess', getHash(hashcess), {
                     sameSite: 'lax',
                     secure: true,
-                    domain: 'localhost'
+                    domain: domain
                 });
                 return res.status(200).json(null);
             }
@@ -192,12 +194,12 @@ router.post('/verifyemail', async (req, res) => {
                     httpOnly: true,
                     sameSite: 'lax',
                     secure: true,
-                    domain: 'localhost'
+                    domain: domain
                 });
                 res.cookie('hashcess', getHash(hashcess), {
                     sameSite: 'lax',
                     secure: true,
-                    domain: 'localhost'
+                    domain: domain
                 });
                 return res.status(200).json(userId);
             }
@@ -265,12 +267,12 @@ router.post('/logout', authenticate, async (req, res) => {
             httpOnly: true,
             sameSite: 'lax',
             secure: true,
-            domain: 'localhost'
+            domain: domain
         });
         res.clearCookie('hashcess', {
             sameSite: 'lax',
             secure: true,
-            domain: 'localhost'
+            domain: domain
         });
         return res.status(200).json(null);
     } catch (e) {

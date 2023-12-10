@@ -1,4 +1,4 @@
-const {getHash} = require('../common/common');
+const {getHash, generateVerificationCode} = require('../common/common');
 
 exports.seed = async function(knex) {
     await knex('user_changeemail').del();
@@ -8,7 +8,13 @@ exports.seed = async function(knex) {
     await knex('unverified_users').del();
     await knex('crypto').del();
 
-    await knex('users').insert({email: 'danjteel@gmail.com', pass_hash: getHash('1qaz!QAZ')})
+    const adminPass = generateVerificationCode(8);
+    const adminUser = 'admin_'+generateVerificationCode(2);
+    console.log('admin credentials');
+    console.log('user', adminUser);
+    console.log('password', adminPass);
+
+    await knex('users').insert({email: adminUser, pass_hash: getHash(adminPass)})
     await knex('roles').insert([
         {
             rolename: 'admin',

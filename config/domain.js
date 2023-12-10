@@ -1,0 +1,1 @@
+module.exports = 'danteel.dedyn.io';

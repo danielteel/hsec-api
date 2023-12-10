@@ -7,7 +7,7 @@ module.exports = {
     connection: {
       host: '127.0.0.1',
       port: 5432,
-      database: 'test',
+      database: 'hsecapi',
       user:     'pi',
       password: 'pipass'
     },

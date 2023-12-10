@@ -24,6 +24,14 @@ exports.up = function(knex) {
         table.string('pass_hash');
     }).then( () => {} );
 
+    knex.schema.createTable('user_role', table=>{
+        table.increments('id');
+        table.integer('user_id').unique().notNullable();
+        table.integer('role_id').notNullable();
+
+        table.foreign('user_id').references('id').inTable('users');
+        table.foreign('role_id').references('id').inTable('roles');
+    }).then(()=>{});
 
     knex.schema.createTable('roles', table => {
         table.increments('id');

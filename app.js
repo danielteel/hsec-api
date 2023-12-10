@@ -4,6 +4,8 @@ const helmet = require("helmet");
 const cookieparser = require("cookie-parser");
 const {connect}=require('./database');
 
+const domain = require('./config/domain');
+
 let forceSqlite=false;
 for (const a of process.argv){
     if (a.toLowerCase().trim()==='-sqlite'){
@@ -15,8 +17,9 @@ const knexConfig = require('./config/knex-configs')[forceSqlite ? 'test' : proce
 
 const {initAccessToken} = require('./common/accessToken');
 
+
 const app = express();
-app.use(cors({origin: 'http://localhost:3000', credentials: true}));
+app.use(cors({origin: domain, credentials: true}));
 app.use(helmet());
 app.use(cookieparser());
 app.use(express.json());
