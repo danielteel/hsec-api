@@ -185,9 +185,9 @@ router.post('/verifyemail', async (req, res) => {
             if (unverifiedUser.verification_code!==verifyCode){
                 return res.status(400).json("invalid email or verification code");
             }else{
-                const [unverifiedUserRole] = await knex('roles').select(['id']).where({rolename: 'unverified'});
+                const [{id: unverifiedUserRoleId}] = await knex('roles').select(['*']).where({rolename: 'unverified'});
 
-                const [{id: userId}] = await knex('users').insert([{email, pass_hash: unverifiedUser.pass_hash, session: 0, role_id: unverifiedUserRole}], 'id');
+                const [{id: userId}] = await knex('users').insert([{email, pass_hash: unverifiedUser.pass_hash, session: 0, role_id: unverifiedUserRoleId}], 'id');
                 
                 await knex('unverified_users').delete().where({email: email, verification_code: verifyCode});
                 
