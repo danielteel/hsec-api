@@ -19,7 +19,7 @@ const {initAccessToken} = require('./common/accessToken');
 
 
 const app = express();
-app.use(cors({origin: domain, credentials: true}));
+app.use(cors({origin: 'http://'+domain, credentials: true}));
 app.use(helmet());
 app.use(cookieparser());
 app.use(express.json());
