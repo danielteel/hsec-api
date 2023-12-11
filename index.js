@@ -13,11 +13,6 @@ const server = app.listen(port, () => {
 });
 
 
-//Logging
-app.use((req, res, next) => {
-        console.log(req.method, req.originalUrl, req.ip);
-        next();
-});
 
 //Webhook to git pull
 app.post('/gitpush/:secret', async (req, res) => {
@@ -44,7 +39,7 @@ app.post('/gitpush/:secret', async (req, res) => {
         '-hls_time', '1.25',
         '-hls_list_size', '3',
         '-hls_flags', 'delete_segments',
-        '/mnt/ramdisk/allcamL.m3u8',
+        '/mnt/ramdisk/cam/allcamL.m3u8',
     ]
     const child = spawn('ffmpeg', args);
     console.log('ffmpeg started')

@@ -20,7 +20,7 @@ router.get('/:file', authenticate, (req, res) => {
         res.sendStatus(404);
     }else{
         if (req.body.user.permissions.view){
-            res.sendFile('/mnt/ramdisk/' + req.params.file);
+            res.sendFile('/mnt/ramdisk/cam/' + req.params.file);
         }else{
             res.sendStatus(403);//user doesnt have view permissions
         }

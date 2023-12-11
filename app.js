@@ -9,13 +9,21 @@ const { initAccessToken } = require('./common/accessToken');
 
 
 const app = express();
-app.use(cors({ origin: 'http://' + domain, credentials: true }));
+app.set('trust proxy', true);
+
+//Logging
+app.use((req, res, next) => {
+    console.log(req.method, req.originalUrl, req.ip);
+    next();
+});
+
+app.use(cors({ origin: 'http://' + domain, credentials: true }))
 app.use(helmet());
 app.use(cookieparser());
 app.use(express.json());
 
 
-app.use('/api/user', require('./routes/user'));
+app.use('/user', require('./routes/user'));
 app.use('/cam', require('./routes/cam'));
 
 
