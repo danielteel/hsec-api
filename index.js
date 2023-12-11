@@ -1,6 +1,7 @@
 const {execSync, spawn} = require('node:child_process');
 const dotenv = require('dotenv');
 const {app} = require('./app.js');
+const { mkdirSync }=require('node:fs');
 
 dotenv.config({ path: '../gitpush.env' })
 dotenv.config({ path: '../email.env' });
@@ -27,6 +28,11 @@ app.post('/gitpush/:secret', async (req, res) => {
 
 
 (()=>{
+    try {
+        mkdirSync('/mnt/ramdisk/cam');
+    }catch (e){
+        console.error('failed trying to create cam folder in ramdisk',e);
+    }
     const args = [
         '-i', '/dev/video0',
         '-s', '960x540',

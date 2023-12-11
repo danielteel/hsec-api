@@ -21,7 +21,6 @@ app.use(helmet());
 app.use(cookieparser());
 app.use(express.json());
 
-
 app.use('/user', require('./routes/user'));
 app.use('/cam', require('./routes/cam'));
 
@@ -41,7 +40,6 @@ connect(knexConfig, async (knex) => {
         await knex.migrate.latest();
         await knex.seed.run();
     }
-
     await initAccessToken(knex);
 });
 
