@@ -24,6 +24,10 @@ app.use(express.json());
 app.use('/user', require('./routes/user'));
 app.use('/cam', require('./routes/cam'));
 
+app.all('*', (req, res)=>{
+    console.log("probably a bot");
+});
+
 
 let forceSqlite = false;
 for (const a of process.argv) {
