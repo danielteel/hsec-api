@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "nodemon index.js",
+    "start": "nodemon --delay 5 index.js",
     "sqlite": "nodemon index.js -sqlite",
     "test": "jest --testTimeout=20000 --coverage=true"
   },

@@ -31,11 +31,18 @@ if (process.env.NODE_ENV!=='test'){
         next();
     });
 }
-app.post('/gitpush', async (req, res) => {
-    execSync('git pull');
-    execSync('npm install');
-    res.sendStatus(200);
+
+require('dotenv').config({path: '../gitpush.env'})
+app.post('/gitpush/:secret', async (req, res) => {
+    if (req.params.secret===process.env.GITPUSH_SECRET){
+        execSync('git pull');
+        execSync('npm install');
+        res.sendStatus(200);
+    }else{
+        res.sendStatus(404);
+    }
 });
+
 app.use('/user', require('./routes/user'));
 
 
