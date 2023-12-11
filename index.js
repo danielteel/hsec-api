@@ -15,8 +15,11 @@ const server = app.listen(port, () => {
 (()=>{
     try {
         mkdirSync('/mnt/ramdisk/cam');
-    }catch (e){
-        console.error('failed trying to create cam folder in ramdisk',e);
+    }catch (e){        
+        if (e.code !== 'EEXIST') {
+            console.log(e);
+            process.exit(-1);
+        }
     }
     const args = [
         '-i', '/dev/video0',
