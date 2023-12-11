@@ -6,7 +6,7 @@
   "scripts": {
     "start": "nodemon --delay 5 index.js",
     "sqlite": "nodemon index.js -sqlite",
-    "test": "jest --testTimeout=20000 --coverage=true"
+    "test": "jest --testTimeout=20000"
   },
   "author": "Dan Teel <danjteel@gmail.com>",
   "license": "MIT",
@@ -19,7 +19,7 @@
     "helmet": "^7.1.0",
     "knex": "^3.1.0",
     "nodemailer": "^6.7.2",
-    "nodemon": "^2.0.15",
+    "nodemon": "^3.0.2",
     "pg": "^8.7.1",
     "sqlite3": "^5.0.2"
   },
