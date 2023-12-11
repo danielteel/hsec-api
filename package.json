@@ -4,8 +4,6 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "nodemon --delay 5 index.js",
-    "sqlite": "nodemon index.js -sqlite",
     "test": "jest --testTimeout=20000"
   },
   "author": "Dan Teel <danjteel@gmail.com>",
@@ -14,7 +12,6 @@
   "dependencies": {
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
-    "dotenv": "^10.0.0",
     "express": "^4.17.2",
     "helmet": "^7.1.0",
     "knex": "^3.1.0",

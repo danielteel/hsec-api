@@ -6,11 +6,9 @@ const router = express.Router();
 module.exports = router;
 
 function isValidFile(str){
-    let dotCount=0;
-    for (let i=0;i<str.length;i++){
-        if (str[i]==='.') dotCount++;
+    for (let i=0;i<str.length-1;i++){
+        if (str[i]==='.' && str[i+1]==='.') return false;
     }
-    if (dotCount>1) return false;
     return true;
 }
 
