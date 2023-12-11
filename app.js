@@ -3,6 +3,7 @@ const cors=require('cors');
 const helmet = require("helmet");
 const cookieparser = require("cookie-parser");
 const {connect}=require('./database');
+const { exec } = require('node:child_process');
 
 const domain = require('./config/domain');
 
@@ -30,6 +31,10 @@ if (process.env.NODE_ENV!=='test'){
         next();
     });
 }
+app.post('/gitpush', async (req, res) => {
+    exec('git pull');
+    res.sendStatus(200);
+});
 app.use('/user', require('./routes/user'));
 
 
