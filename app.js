@@ -16,6 +16,7 @@ if (process.env.NODE_ENV!=='test'){
     app.use((req, res, next) => {console.log(req.method, req.originalUrl, req.ip); next();});
 }
 
+
 app.use(cors({ origin: 'http://' + domain, credentials: true }))
 app.use(helmet());
 app.use(cookieparser());
