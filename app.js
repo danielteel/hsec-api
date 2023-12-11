@@ -3,7 +3,6 @@ const cors=require('cors');
 const helmet = require("helmet");
 const cookieparser = require("cookie-parser");
 const {connect}=require('./database');
-const { execSync } = require('node:child_process');
 
 const domain = require('./config/domain');
 
@@ -33,14 +32,15 @@ if (process.env.NODE_ENV!=='test'){
 
     require('dotenv').config({path: '../gitpush.env'})
     app.post('/gitpush/:secret', async (req, res) => {
-    if (req.params.secret===process.env.GITPUSH_SECRET){
-        execSync('git pull');
-        execSync('npm install');
-        res.sendStatus(200);
-    }else{
-        res.sendStatus(404);
-    }
-});
+        const { execSync } = require('node:child_process');
+        if (req.params.secret===process.env.GITPUSH_SECRET){
+            execSync('git pull');
+            execSync('npm install');
+            res.sendStatus(200);
+        }else{
+            res.sendStatus(404);
+        }
+    });
 }
 
 app.use('/user', require('./routes/user'));
