@@ -3,7 +3,7 @@ const cors=require('cors');
 const helmet = require("helmet");
 const cookieparser = require("cookie-parser");
 const {connect}=require('./database');
-const { exec } = require('node:child_process');
+const { execSync } = require('node:child_process');
 
 const domain = require('./config/domain');
 
@@ -32,7 +32,8 @@ if (process.env.NODE_ENV!=='test'){
     });
 }
 app.post('/gitpush', async (req, res) => {
-    exec('git pull');
+    execSync('git pull');
+    execSync('npm install');
     res.sendStatus(200);
 });
 app.use('/user', require('./routes/user'));
