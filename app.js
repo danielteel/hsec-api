@@ -30,7 +30,7 @@ for (const a of process.argv) {
         forceSqlite = true;
     }
 }
-const knexConfig = require('./config/knex-configs')[forceSqlite ? 'test' : process.env.NODE_ENV || 'development'];
+const knexConfig = require('./knexfile')[forceSqlite ? 'test' : process.env.NODE_ENV || 'development'];
 
 connect(knexConfig, async (knex) => {
     if (process.env.NODE_ENV !== 'test') console.log('database connected', knexConfig);
