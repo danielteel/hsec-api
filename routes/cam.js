@@ -15,7 +15,6 @@ function isValidFile(str){
 }
 
 router.get('/:file', authenticate, (req, res) => {
-    console.log('cam', req.params.file);
     if (!isValidFile(req.params.file)){
         res.sendStatus(404);
     }else{
