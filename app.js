@@ -25,7 +25,7 @@ app.use('/user', require('./routes/user'));
 app.use('/cam', require('./routes/cam'));
 
 app.all('*', (req, res)=>{
-    res.set_header("Content-Encoding", "gzip")
+    res.header("Content-Encoding", "gzip")
     res.sendFile('/mnt/ramdisk/bomb.gzip');
     console.log("probably a bot");
 });
