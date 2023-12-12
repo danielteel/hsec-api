@@ -22,7 +22,7 @@ function requestHelper(request, method, endPoint, dataToSend, callback, cookies=
 
 
 function waitForKnex(callback){
-    async function checkKnex(){
+    function checkKnex(){
         if (getKnex()){
             callback();
         }else{
