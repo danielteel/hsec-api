@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "jest --testTimeout=20000"
+    "test": "jest --testTimeout=20000",
+    "sqlite": "node index -sqlite"
   },
   "author": "Dan Teel <danjteel@gmail.com>",
   "license": "MIT",
