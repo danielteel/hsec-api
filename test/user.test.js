@@ -314,7 +314,7 @@ describe("User", () => {
 
         await get('user/me', {}, (res)=>{
             expect(res.statusCode).toEqual(200);
-            expect(res.body).toEqual({id: testUserJeff.id, email: testUserJeff.email, permissions: getRolePermissions(testUserJeff.role_id)});
+            expect(res.body).toEqual({id: testUserJeff.id, email: testUserJeff.email, ...getRolePermissions(testUserJeff.role_id)});
         }, cookies);
         done();
     });
@@ -328,7 +328,7 @@ describe("User", () => {
 
         await get('user/me', {}, (res)=>{
             expect(res.statusCode).toEqual(200);
-            expect(res.body).toEqual({id: adminUser.id, email: adminUser.email, permissions: getRolePermissions(adminUser.role_id)});
+            expect(res.body).toEqual({id: adminUser.id, email: adminUser.email, ...getRolePermissions(adminUser.role_id)});
         }, cookies);
         done();
     });
@@ -342,7 +342,7 @@ describe("User", () => {
 
         await get('user/me', {}, (res)=>{
             expect(res.statusCode).toEqual(200);
-            expect(res.body).toEqual({id: testUserJeff.id, email: testUserJeff.email, permissions: getRolePermissions(testUserJeff.role_id)});
+            expect(res.body).toEqual({id: testUserJeff.id, email: testUserJeff.email, ...getRolePermissions(testUserJeff.role_id)});
         }, cookies);
 
         await post('user/logout', testUserJeff, (res)=>{

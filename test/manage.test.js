@@ -55,13 +55,29 @@ afterAll( () => {
 
 
 
-describe("Cam", () => {
+describe("Manage", () => {
 
-    it('GET /manage/unverified returns unverified users for manager and admin roles', async (done)=>{
+    it('GET /manage/unverified returns 403 when asked by user without manage permissions', async (done)=>{
         await get('manage/unverified', {}, async (res)=>{
-            expect(res.body).toEqual([{user_id: testUnverifiedUser.id, email: testUnverifiedUser.email}]);
+            expect(res.statusCode).toEqual(403);
+            expect(res.body).toEqual({});
+        }, testUnverifiedUser.cookies);    
+        await get('manage/unverified', {}, async (res)=>{
+            expect(res.statusCode).toEqual(403);
+            expect(res.body).toEqual({});
+        }, testMemberUser.cookies);
+        done();
+    });
+
+    it('GET /manage/unverified returns unverified users when asked by user with manage permissions', async (done)=>{
+        await get('manage/unverified', {}, async (res)=>{
             expect(res.statusCode).toEqual(200);
-        }, testUnverifiedUser.cookies);
+            expect(res.body).toEqual({email: testUnverifiedUser.email, user_id: testUnverifiedUser.id});
+        }, testManagerUser.cookies);    
+        await get('manage/unverified', {}, async (res)=>{
+            expect(res.statusCode).toEqual(200);
+            expect(res.body).toEqual({email: testUnverifiedUser.email, user_id: testUnverifiedUser.id});
+        }, testAdminUser.cookies);
         done();
     });
 });
