@@ -24,12 +24,21 @@ function requestHelper(request, method, endPoint, dataToSend, callback, cookies=
 function waitForKnex(callback){
     function checkKnex(){
         if (getKnex()){
-            callback();
+            callback(getKnex());
         }else{
             setTimeout(checkKnex, 250);
         }
     }
     setTimeout(checkKnex, 0);
+}
+
+function waitForKnexPromise(){
+    let resolveFn, rejectFn;
+    const promise = new Promise((resolve, reject) => { resolveFn = resolve; rejectFn = reject; });
+    waitForKnex((knex)=>{
+        resolveFn(knex);
+    })
+    return promise;
 }
 
 function closeKnex(){
@@ -53,4 +62,6 @@ async function requestCreateUser(post){
     });
 }
 
-module.exports={requestHelper, closeKnex, waitForKnex, requestCreateUser, getKnex};
+
+
+module.exports={requestHelper, closeKnex, waitForKnex, requestCreateUser, getKnex, waitForKnexPromise};

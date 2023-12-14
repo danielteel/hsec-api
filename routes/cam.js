@@ -13,16 +13,12 @@ function isValidFile(str){
     return true;
 }
 
-router.get('/:file', authenticate, (req, res) => {
+router.get('/:file', authenticate.bind(null, {view: true}), (req, res) => {
     try {
         if (!isValidFile(req.params.file)){
             res.sendStatus(404);
         }else{
-            if (req.body.user.view){
-                res.sendFile(process.env.CAM_DIR + req.params.file);
-            }else{
-                res.sendStatus(403);//user doesnt have view permissions
-            }
+            res.sendFile(process.env.CAM_DIR + req.params.file);
         }
     } catch (e){
         res.sendStatus(404);

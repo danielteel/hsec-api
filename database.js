@@ -7,6 +7,20 @@ function getKnex(){
     return knex;
 }
 
+function needKnex(req, res, next){
+    req.knex=null;
+    try {
+        if (knex){
+            req.knex=knex;
+            return next();
+        }
+        return res.sendStatus(503);
+    }catch (e){
+        console.error('ERROR needKnex', e);
+        return res.sendStatus(400);
+    }
+}
+
 //singleton-ish, stores connection in global for use in other files. aka, you can only connect to one database unless I add some more codes
 function connect(knexProfile, onConnect, maxAttempts=60, logOut=console.log){
     let localKnex=null;
@@ -46,4 +60,4 @@ function connect(knexProfile, onConnect, maxAttempts=60, logOut=console.log){
     return promise;
 }
 
-module.exports = {connect, getKnex};
+module.exports = {connect, getKnex, needKnex};

@@ -1,5 +1,5 @@
 const express = require('express');
-const { getKnex } = require('../database');
+const { getKnex, needKnex } = require('../database');
 const {getHash, verifyFields, generateVerificationCode, isLegalPassword} = require('../common/common');
 const {generateAccessToken, authenticate} = require('../common/accessToken');
 const sendMail = require('../common/sendMail');
@@ -13,11 +13,9 @@ module.exports = router;
 
 
 
-router.post('/passwordchange', async (req, res) => {
-
+router.post('/passwordchange', needKnex ,async (req, res) => {
     try {
-        const knex=getKnex();
-        if (!knex) throw "database not connected";
+        const knex=req.knex;
 
         const [fieldCheck, email, newPassword, confirmCode] = verifyFields(req.body, ['email:string:*:lt', 'newPassword:string:?', 'confirmCode:string:?:lt']);
         if (fieldCheck) return res.status(400).json('failed field check: '+fieldCheck)
@@ -52,20 +50,16 @@ router.post('/passwordchange', async (req, res) => {
         return res.status(200).json('check email');
     } catch (e) {
         console.error('ERROR /passwordchange', req.body, e);
-        return res.status(400).json('failed');
+        return res.sendStatus(400);
     }
 });
 
 //get change email status
-router.post('/getchangeemail', authenticate, async (req, res) => {
+router.get('/getchangeemail', [needKnex, authenticate.bind(null, {})], async (req, res) => {
     try {
-        const knex=getKnex();
-        if (!knex) throw "database not connected";
+        const knex=req.knex;
 
-        const [fieldCheck, user] = verifyFields(req.body, ['user:any']);
-        if (fieldCheck) return res.status(400).json('failed field check: '+fieldCheck)
-
-        const [changeEmailRecord] = await knex('user_changeemail').select('*').where({user_id: user.id});
+        const [changeEmailRecord] = await knex('user_changeemail').select('*').where({user_id: req.body.user.id});
         if (changeEmailRecord){
             if (changeEmailRecord.step==='verifyOld'){
                 return res.status(200).json('verifyOld');
@@ -76,30 +70,29 @@ router.post('/getchangeemail', authenticate, async (req, res) => {
         return res.status(200).json('nochange');
     } catch (e) {
         console.error('ERROR /getchangeemail', req.body, e);
-        return res.status(400).json('failed');
+        return res.sendStatus(400);
     }
 });
 
 //change email
-router.post('/changeemail', authenticate, async (req, res) => {
+router.post('/changeemail', [needKnex, authenticate.bind(null, {})], async (req, res) => {
     try {
-        const knex=getKnex();
-        if (!knex) throw "database not connected";
+        const knex=req.knex;
 
-        const [fieldCheck, user, newEmail, verifyCode] = verifyFields(req.body, ['user:any', 'newEmail:string:?:lt', 'verifyCode:string:?:lt']);
+        const [fieldCheck, newEmail, verifyCode] = verifyFields(req.body, ['newEmail:string:?:lt', 'verifyCode:string:?:lt']);
         if (fieldCheck) return res.status(400).json('failed field check: '+fieldCheck)
 
         if (newEmail){//passing in newEmail means you want to start the process of changing emails
-            await knex('user_changeemail').delete().where({user_id: user.id});//delete old change email record if it exists
+            await knex('user_changeemail').delete().where({user_id: req.body.user.id});//delete old change email record if it exists
 
             const newVerifyCode = generateVerificationCode();
-            await knex('user_changeemail').insert([{user_id: user.id, new_email: newEmail, current_verification_code: newVerifyCode, new_email: newEmail, step: 'verifyOld'}]);
+            await knex('user_changeemail').insert([{user_id: req.body.user.id, new_email: newEmail, current_verification_code: newVerifyCode, new_email: newEmail, step: 'verifyOld'}]);
 
-            sendMail(user.email, 'Verify change email', 'Change email request recieved, code to verify current email before changing is '+newVerifyCode);
+            sendMail(req.body.user.email, 'Verify change email', 'Change email request recieved, code to verify current email before changing is '+newVerifyCode);
             return res.status(200).json('verify current email');
 
         }else{//newEmail wasnt passed, we must be on the verify steps
-            const [changeEmailRecord] = await knex('user_changeemail').select('*').where({user_id: user.id});
+            const [changeEmailRecord] = await knex('user_changeemail').select('*').where({user_id: req.body.user.id});
             if (changeEmailRecord){
                 if (verifyCode === changeEmailRecord.current_verification_code){
                     if (changeEmailRecord.step==='verifyOld'){
@@ -110,7 +103,7 @@ router.post('/changeemail', authenticate, async (req, res) => {
                         return res.status(200).json('verify new email');
                     }else if (changeEmailRecord.step==='verifyNew'){
                         await knex('users').update({email: changeEmailRecord.new_email}).where({id: changeEmailRecord.user_id});
-                        await knex('user_changeemail').delete().where({user_id: user.id});//delete change email record if it exists
+                        await knex('user_changeemail').delete().where({user_id: req.body.user.id});//delete change email record if it exists
                         
                         return res.status(201).json(changeEmailRecord.new_email);
                     }else{
@@ -125,15 +118,14 @@ router.post('/changeemail', authenticate, async (req, res) => {
         }
     } catch (e) {
         console.error('ERROR /changeemail', req.body, e);
-        return res.status(400).json('failed');
+        return res.sendStatus(400);
     }
 });
 
 //login request returns an access token
-router.post('/login', async (req, res) => {
+router.post('/login', needKnex, async (req, res) => {
     try {
-        const knex=getKnex();
-        if (!knex) throw "database not connected";
+        const knex=req.knex;
         
         const [fieldCheck, email, password] = verifyFields(req.body, ['email:string:*:lt', 'password:string']);
         if (fieldCheck) return res.status(400).json('failed field check: '+fieldCheck)
@@ -156,7 +148,7 @@ router.post('/login', async (req, res) => {
                     secure: true,
                     domain: domain
                 });
-                return res.status(200).json(null);
+                return res.sendStatus(200);
             }
         }
 
@@ -164,15 +156,14 @@ router.post('/login', async (req, res) => {
 
     } catch (e) {
         console.error('ERROR /login', req.body, e);
-        return res.status(400).json('failed');
+        return res.sendStatus(400);
     }
 });
 
 //Verify email with sent code, move user from unverified_users to users
-router.post('/verifyemail', async (req, res) => {
+router.post('/verifyemail', needKnex, async (req, res) => {
     try {
-        const knex=getKnex();
-        if (!knex) throw "database not connected";
+        const knex=req.knex;
 
         //Verify passed in data
         const [fieldCheck, email, verifyCode] = verifyFields(req.body, ['email:string:*:lt', 'verifyCode:string:*:lt']);
@@ -209,15 +200,14 @@ router.post('/verifyemail', async (req, res) => {
         }
     } catch (e) {
         console.error('ERROR /verifyemail', req.body, e);
-        return res.status(400).json('failed');
+        return res.sendStatus(400);
     }
 });
 
 //Add user to unverified users and send email with verification code
-router.post('/create', async (req, res)=>{
+router.post('/create', needKnex, async (req, res)=>{
     try {
-        const knex=getKnex();
-        if (!knex) throw "database not connected";
+        const knex=req.knex;
 
         const [fieldCheck, email, password] = verifyFields(req.body, ['email:string:*:lt', 'password:string']);
         if (fieldCheck) return res.status(400).json('failed field check: '+fieldCheck)
@@ -251,20 +241,20 @@ router.post('/create', async (req, res)=>{
 
     } catch (e) {
         console.error('ERROR /create', req.body, e);
-        return res.status(400).json('failed');
+        return res.sendStatus(400);
     }
 });
 
-router.get('/me', authenticate, async (req, res) => {
+router.get('/me', authenticate.bind(null, {}), async (req, res) => {
     try {
         res.status(200).json(req.body.user);
     } catch (e) {
         console.error('ERROR /me', req.body, e);
-        return res.status(400).json('failed');
+        return res.sendStatus(400);
     }
 });
 
-router.post('/logout', authenticate, async (req, res) => {
+router.post('/logout', authenticate.bind(null, {}), async (req, res) => {
     try {
         res.clearCookie('accessToken', {
             httpOnly: true,
@@ -277,9 +267,9 @@ router.post('/logout', authenticate, async (req, res) => {
             secure: true,
             domain: domain
         });
-        return res.status(200).json(null);
+        return res.sendStatus(200);
     } catch (e) {
         console.error('ERROR /logout', e);
-        return res.status(400).json('failed');
+        return res.sendStatus(400);
     }
 });

@@ -87,32 +87,39 @@ async function getUserFromToken(token){
     return null;
 }
 
-
-async function authenticate(req, res, next){
-    if (req.body.user) req.body.user=null;
-    const accessToken = decryptAccessToken(req.cookies['accessToken']);
-    if (accessToken){
-        if (getHash(accessToken.hashcess) === req.cookies['hashcess']){
-            const user=await getUserFromToken(accessToken);
-            if (user){
-                req.body.user=user;
-                return next();
+async function authenticate(reqPermissions, req, res, next){
+    try {
+        if (req.body.user) req.body.user=null;
+        const accessToken = decryptAccessToken(req.cookies['accessToken']);
+        if (accessToken){
+            if (getHash(accessToken.hashcess) === req.cookies['hashcess']){
+                const user=await getUserFromToken(accessToken);
+                if (user){
+                    if (reqPermissions.admin && !user.admin || reqPermissions.manage && !user.manage || reqPermissions.view && !user.view){
+                        return res.sendStatus(403);
+                    }
+                    req.body.user=user;
+                    return next();
+                }
+            }else{
+                res.clearCookie('accessToken', {
+                    httpOnly: true,
+                    sameSite: 'lax',
+                    secure: true,
+                    domain: 'localhost'
+                });
+                res.clearCookie('hashcess', {
+                    sameSite: 'lax',
+                    secure: true,
+                    domain: 'localhost'
+                });
             }
-        }else{
-            res.clearCookie('accessToken', {
-                httpOnly: true,
-                sameSite: 'lax',
-                secure: true,
-                domain: 'localhost'
-            });
-            res.clearCookie('hashcess', {
-                sameSite: 'lax',
-                secure: true,
-                domain: 'localhost'
-            });
         }
+        return res.status(401).json('log in');
+    }catch (e){
+        console.error('ERROR authenticate', e);
+        return res.status(400).json('failed');
     }
-    return res.status(401).json('log in');
 }
 
 
