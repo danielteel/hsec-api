@@ -13,7 +13,7 @@ function isValidFile(str){
     return true;
 }
 
-router.get('/:file', authenticate.bind(null, {view: true}), (req, res) => {
+router.get('/:file', authenticate.bind(null, 'member'), (req, res) => {
     try {
         if (!isValidFile(req.params.file)){
             res.sendStatus(404);
@@ -21,6 +21,7 @@ router.get('/:file', authenticate.bind(null, {view: true}), (req, res) => {
             res.sendFile(process.env.CAM_DIR + req.params.file);
         }
     } catch (e){
+        console.error('ERROR /cam/:file', req.body, e);
         res.sendStatus(404);
     }
 });

@@ -16,22 +16,13 @@ exports.up = function(knex) {
         table.string('verification_code');
     }).then( () => {} );
 
-    knex.schema.createTable('roles', table => {
-        table.increments('id');
-        table.string('rolename');
-        table.boolean('admin');
-        table.boolean('manage');
-        table.boolean('view');
-    }).then(()=>{});
-
     knex.schema.createTable('users', table => {
         table.increments('id');
         table.timestamp('created_at').defaultTo(knex.fn.now());
         table.string('email').unique().notNullable();
         table.integer('session').defaultTo(0);
         table.string('pass_hash');
-        table.integer('role_id').notNullable();
-        table.foreign('role_id').references('id').inTable('roles');
+        table.string('role').checkIn(['super', 'admin', 'manager', 'member', 'unverified']);
     }).then( () => {} );
 
     knex.schema.createTable('user_changepassword', table => {
@@ -59,7 +50,6 @@ exports.down = function(knex) {
     knex.schema.dropTableIfExists('crypto').then(()=>{});
     knex.schema.dropTableIfExists('unverified_users').then(()=>{});
     knex.schema.dropTableIfExists('users').then(()=>{});
-    knex.schema.dropTableIfExists('roles').then(()=>{});
     knex.schema.dropTableIfExists('user_changepassword').then(()=>{});
     return knex.schema.dropTableIfExists('user_changeemail');
 };

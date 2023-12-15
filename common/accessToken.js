@@ -78,27 +78,48 @@ function decryptAccessToken(data){
     }
 }
 
+function isHigherRanked(a, b){
+    const roles = ['unverified', 'member', 'manager', 'admin', 'super'];
+    const aRank = roles.indexOf(a.trim().toLowerCase());
+    const bRank = roles.indexOf(b.trim().toLowerCase());
+
+    if (aRank===-1 || bRank===-1){
+        throw Error('isHigherRanked: invalid role on either '+a+' or '+b);
+    }
+    if (aRank>bRank) return true;
+    return false;
+}
+
 async function getUserFromToken(token){
     const knex=getKnex();
-    const [user] = await knex('users').select('users.id', 'users.email', 'roles.admin', 'roles.manage', 'roles.view').leftJoin('roles', 'users.role_id', 'roles.id').where({'users.id': token.id, session: token.session});;
+    const [user] = await knex('users').select('id', 'email', 'role').where({id: token.id, session: token.session});;
     if (user){
         return user;
     }
     return null;
 }
 
-async function authenticate(reqPermissions, req, res, next){
+async function authenticate(minRole, req, res, next){
     try {
-        if (req.body.user) req.body.user=null;
+        if (! ['super', 'admin', 'manager', 'member', 'unverified'].includes(minRole)){
+            throw Error('unknown min role '+minRole+', expected either super admin manager member unverified');
+        }
+        if (req.user) req.user=null;
         const accessToken = decryptAccessToken(req.cookies['accessToken']);
         if (accessToken){
             if (getHash(accessToken.hashcess) === req.cookies['hashcess']){
                 const user=await getUserFromToken(accessToken);
                 if (user){
-                    if (reqPermissions.admin && !user.admin || reqPermissions.manage && !user.manage || reqPermissions.view && !user.view){
+                    let notAllowed=false;
+                    notAllowed ||= minRole==='super' && user.role!=='super';
+                    notAllowed ||= minRole==='admin' && !['super', 'admin'].includes(user.role);
+                    notAllowed ||= minRole==='manager' && !['super', 'admin', 'manager'].includes(user.role);
+                    notAllowed ||= minRole==='member' && !['super', 'admin', 'manager', 'member'].includes(user.role);
+                    notAllowed ||= minRole==='unverified' && !['super', 'admin', 'manager', 'member', 'unverified'].includes(user.role);
+                    if (notAllowed){
                         return res.sendStatus(403);
                     }
-                    req.body.user=user;
+                    req.user=user;
                     return next();
                 }
             }else{
@@ -123,4 +144,4 @@ async function authenticate(reqPermissions, req, res, next){
 }
 
 
-module.exports = {initAccessToken, generateAccessToken, decryptAccessToken, authenticate, getUserFromToken};
+module.exports = {initAccessToken, generateAccessToken, decryptAccessToken, authenticate, getUserFromToken, isHigherRanked};

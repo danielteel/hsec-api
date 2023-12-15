@@ -49,17 +49,17 @@ router.post('/passwordchange', needKnex ,async (req, res) => {
         //User wasnt found, but give back the same response as if there was one found so its harded to poke around finding emails
         return res.status(200).json('check email');
     } catch (e) {
-        console.error('ERROR /passwordchange', req.body, e);
+        console.error('ERROR POST /user/passwordchange', req.body, e);
         return res.sendStatus(400);
     }
 });
 
 //get change email status
-router.get('/getchangeemail', [needKnex, authenticate.bind(null, {})], async (req, res) => {
+router.get('/getchangeemail', [needKnex, authenticate.bind(null, 'unverified')], async (req, res) => {
     try {
         const knex=req.knex;
 
-        const [changeEmailRecord] = await knex('user_changeemail').select('*').where({user_id: req.body.user.id});
+        const [changeEmailRecord] = await knex('user_changeemail').select('*').where({user_id: req.user.id});
         if (changeEmailRecord){
             if (changeEmailRecord.step==='verifyOld'){
                 return res.status(200).json('verifyOld');
@@ -69,13 +69,13 @@ router.get('/getchangeemail', [needKnex, authenticate.bind(null, {})], async (re
         }
         return res.status(200).json('nochange');
     } catch (e) {
-        console.error('ERROR /getchangeemail', req.body, e);
+        console.error('ERROR GET /user/getchangeemail', req.body, e);
         return res.sendStatus(400);
     }
 });
 
 //change email
-router.post('/changeemail', [needKnex, authenticate.bind(null, {})], async (req, res) => {
+router.post('/changeemail', [needKnex, authenticate.bind(null, 'unverified')], async (req, res) => {
     try {
         const knex=req.knex;
 
@@ -83,16 +83,16 @@ router.post('/changeemail', [needKnex, authenticate.bind(null, {})], async (req,
         if (fieldCheck) return res.status(400).json('failed field check: '+fieldCheck)
 
         if (newEmail){//passing in newEmail means you want to start the process of changing emails
-            await knex('user_changeemail').delete().where({user_id: req.body.user.id});//delete old change email record if it exists
+            await knex('user_changeemail').delete().where({user_id: req.user.id});//delete old change email record if it exists
 
             const newVerifyCode = generateVerificationCode();
-            await knex('user_changeemail').insert([{user_id: req.body.user.id, new_email: newEmail, current_verification_code: newVerifyCode, new_email: newEmail, step: 'verifyOld'}]);
+            await knex('user_changeemail').insert([{user_id: req.user.id, new_email: newEmail, current_verification_code: newVerifyCode, new_email: newEmail, step: 'verifyOld'}]);
 
-            sendMail(req.body.user.email, 'Verify change email', 'Change email request recieved, code to verify current email before changing is '+newVerifyCode);
+            sendMail(req.user.email, 'Verify change email', 'Change email request recieved, code to verify current email before changing is '+newVerifyCode);
             return res.status(200).json('verify current email');
 
         }else{//newEmail wasnt passed, we must be on the verify steps
-            const [changeEmailRecord] = await knex('user_changeemail').select('*').where({user_id: req.body.user.id});
+            const [changeEmailRecord] = await knex('user_changeemail').select('*').where({user_id: req.user.id});
             if (changeEmailRecord){
                 if (verifyCode === changeEmailRecord.current_verification_code){
                     if (changeEmailRecord.step==='verifyOld'){
@@ -103,7 +103,7 @@ router.post('/changeemail', [needKnex, authenticate.bind(null, {})], async (req,
                         return res.status(200).json('verify new email');
                     }else if (changeEmailRecord.step==='verifyNew'){
                         await knex('users').update({email: changeEmailRecord.new_email}).where({id: changeEmailRecord.user_id});
-                        await knex('user_changeemail').delete().where({user_id: req.body.user.id});//delete change email record if it exists
+                        await knex('user_changeemail').delete().where({user_id: req.user.id});//delete change email record if it exists
                         
                         return res.status(201).json(changeEmailRecord.new_email);
                     }else{
@@ -117,7 +117,7 @@ router.post('/changeemail', [needKnex, authenticate.bind(null, {})], async (req,
             }
         }
     } catch (e) {
-        console.error('ERROR /changeemail', req.body, e);
+        console.error('ERROR POST /user/changeemail', req.body, e);
         return res.sendStatus(400);
     }
 });
@@ -155,7 +155,7 @@ router.post('/login', needKnex, async (req, res) => {
         return res.status(400).json("invalid email or password");
 
     } catch (e) {
-        console.error('ERROR /login', req.body, e);
+        console.error('ERROR POST /user/login', req.body, e);
         return res.sendStatus(400);
     }
 });
@@ -176,9 +176,7 @@ router.post('/verifyemail', needKnex, async (req, res) => {
             if (unverifiedUser.verification_code!==verifyCode){
                 return res.status(400).json("invalid email or verification code");
             }else{
-                const [{id: unverifiedUserRoleId}] = await knex('roles').select(['*']).where({rolename: 'unverified'});
-
-                const [{id: userId}] = await knex('users').insert([{email, pass_hash: unverifiedUser.pass_hash, session: 0, role_id: unverifiedUserRoleId}], 'id');
+                const [{id: userId}] = await knex('users').insert([{email, pass_hash: unverifiedUser.pass_hash, session: 0, role: 'unverified'}], 'id');
                 
                 await knex('unverified_users').delete().where({email: email, verification_code: verifyCode});
                 
@@ -199,7 +197,7 @@ router.post('/verifyemail', needKnex, async (req, res) => {
             }
         }
     } catch (e) {
-        console.error('ERROR /verifyemail', req.body, e);
+        console.error('ERROR POST /user/verifyemail', req.body, e);
         return res.sendStatus(400);
     }
 });
@@ -240,21 +238,21 @@ router.post('/create', needKnex, async (req, res)=>{
         return res.status(201).json(email);
 
     } catch (e) {
-        console.error('ERROR /create', req.body, e);
+        console.error('ERROR POST /user/create', req.body, e);
         return res.sendStatus(400);
     }
 });
 
-router.get('/me', authenticate.bind(null, {}), async (req, res) => {
+router.get('/me', authenticate.bind(null, 'unverified'), async (req, res) => {
     try {
-        res.status(200).json(req.body.user);
+        res.status(200).json(req.user);
     } catch (e) {
-        console.error('ERROR /me', req.body, e);
+        console.error('ERROR GET /me', req.body, e);
         return res.sendStatus(400);
     }
 });
 
-router.post('/logout', authenticate.bind(null, {}), async (req, res) => {
+router.post('/logout', authenticate.bind(null, 'unverified'), async (req, res) => {
     try {
         res.clearCookie('accessToken', {
             httpOnly: true,
@@ -269,7 +267,7 @@ router.post('/logout', authenticate.bind(null, {}), async (req, res) => {
         });
         return res.sendStatus(200);
     } catch (e) {
-        console.error('ERROR /logout', e);
+        console.error('ERROR POST /user/logout', e);
         return res.sendStatus(400);
     }
 });

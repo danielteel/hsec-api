@@ -22,7 +22,17 @@ function verifyFields(obj, fields){
     for (const field of fields){
         const [name, type, optional, modifiers] = field.split(':');
         retArray.push(obj[name]);
-        if (typeof obj[name]!==type){
+        if (typeof type==='string' && typeof obj[name]==='string' && type[0]==='~'){
+            const possibles = type.substring(1).split(',');
+            if (!possibles.find(value => value.trim().toLowerCase()===obj[name].trim().toLowerCase())){
+                failedFor+=`expected ${name} field of value ${obj[name]} to be one of these values ${possibles.join(',')}`
+                retArray.pop();
+                retArray.push(undefined);
+            }else{
+                retArray[retArray.length-1]=retArray[retArray.length-1].toLowerCase();
+                retArray[retArray.length-1]=retArray[retArray.length-1].trim();
+            }
+        }else if (typeof obj[name]!==type){
             if (!(obj[name]===undefined && optional==='?')){
                 if (type!=='any' || optional!=='?' && obj[name]===undefined){
                     failedFor+=`expected ${name} to be of type ${type}, recieved type ${typeof obj[name]}. `;

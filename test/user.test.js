@@ -1,35 +1,28 @@
+process.env.SUPER_PASSWORD = "superpass";
+process.env.SUPER_USERNAME = "superuser";
+
 const {mockNodemailer} = require('./mocks/nodemailer');
 const {app} = require('../app.js');
 const request = require('supertest')(app);
-
-const {waitForKnexPromise, closeKnex, requestHelper, getKnex} =require('./helpers');
+const {waitForKnexPromise, closeKnex, requestHelper} =require('./helpers');
 const post = requestHelper.bind(null, request, 'post');
 const get = requestHelper.bind(null, request, 'get');
-
 const {getHash}=require('../common/common');
-
 const {decryptAccessToken} = require('../common/accessToken');
 
 
 let knex = null;
-let roles = null;
-const adminUser={email:'admin@admin.com', password: 'adminpass', pass_hash: getHash('adminpass')};
-
-
-function getRoleId(name){
-    return roles.find(r => r.rolename===name).id;
-}
-function getRolePermissions(role_id){
-    const role=roles.find(r => r.id===role_id);
-    return {admin: role.admin, manage: role.manage, view: role.view};
-}
+const superUser={email: process.env.SUPER_USERNAME, password: process.env.SUPER_PASSWORD, pass_hash: getHash(process.env.SUPER_PASSWORD), role: 'super'};
 
 
 beforeAll( async done => {
     knex = await waitForKnexPromise();
-    roles = await knex('roles').select('*');
-    adminUser.role_id = getRoleId('admin');
-    [{id: adminUser.id}] = await knex('users').insert({email: adminUser.email, pass_hash: adminUser.pass_hash, role_id: adminUser.role_id}).returning('*');
+    const [result] = await knex('users').select('id').where({email: process.env.SUPER_USERNAME});
+    superUser.id=result.id;
+
+    await post('user/login', superUser, (res)=>{
+        superUser.cookies=res.headers['set-cookie'];
+    }); 
     done();
 })
 
@@ -46,7 +39,7 @@ beforeEach(()=>{
 describe("User", () => {
     
     const testUserDan = {email:'dan@test.com', password: '2wsxcde3@WSXCDE#'};
-    const testUserJeff = {email:'jeff@test.com', password: '3edcxsw2#EDCXSW@'};
+    let testUserJeff = {email:'jeff@test.com', password: '3edcxsw2#EDCXSW@'};
 
 
     it('POST /user/create, returns an error if sent wrong email data type', async (done) => {
@@ -96,7 +89,6 @@ describe("User", () => {
     });
 
     it('POST /user/create and /user/verifyemail, verifying email replies back with user id', async (done) => {
-
         const verifyMessage = await post('user/create', testUserJeff, (res)=>{
             expect(res.statusCode).toEqual(201);
 
@@ -108,7 +100,7 @@ describe("User", () => {
         await post('user/verifyemail', verifyMessage, (res)=>{
             expect(res.statusCode).toEqual(200);
             testUserJeff.id = res.body;
-            testUserJeff.role_id = getRoleId('unverified');
+            testUserJeff.role = 'unverified';
             expect(res.headers['set-cookie'][0]).toContain('Path=/; HttpOnly; Secure; SameSite=Lax');
             expect(res.headers['set-cookie'][0].split('=')[0]).toBe('accessToken');
             expect(res.headers['set-cookie'][1]).toContain('Path=/; Secure; SameSite=Lax');
@@ -308,22 +300,16 @@ describe("User", () => {
 
         await get('user/me', {}, (res)=>{
             expect(res.statusCode).toEqual(200);
-            expect(res.body).toEqual({id: testUserJeff.id, email: testUserJeff.email, ...getRolePermissions(testUserJeff.role_id)});
+            expect(res.body).toEqual({id: testUserJeff.id, email: testUserJeff.email, role: 'unverified'});
         }, cookies);
         done();
     });
 
-    it('GET /user/me shows permissions for admin', async (done)=>{
-        let cookies;
-        await post('user/login', adminUser, (res)=>{
-            cookies=res.headers['set-cookie'];
-            expect(res.statusCode).toEqual(200);
-        }); 
-
+    it('GET /user/me shows permissions for super user', async (done)=>{
         await get('user/me', {}, (res)=>{
             expect(res.statusCode).toEqual(200);
-            expect(res.body).toEqual({id: adminUser.id, email: adminUser.email, ...getRolePermissions(adminUser.role_id)});
-        }, cookies);
+            expect(res.body).toEqual({id: superUser.id, email: superUser.email, role: 'super'});
+        }, superUser.cookies);
         done();
     });
 
@@ -336,7 +322,7 @@ describe("User", () => {
 
         await get('user/me', {}, (res)=>{
             expect(res.statusCode).toEqual(200);
-            expect(res.body).toEqual({id: testUserJeff.id, email: testUserJeff.email, ...getRolePermissions(testUserJeff.role_id)});
+            expect(res.body).toEqual({id: testUserJeff.id, email: testUserJeff.email, role: testUserJeff.role});
         }, cookies);
 
         await post('user/logout', testUserJeff, (res)=>{

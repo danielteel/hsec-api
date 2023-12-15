@@ -1,5 +1,6 @@
 const express = require('express');
-const {authenticate} = require('../common/accessToken');
+const {verifyFields} = require('../common/common');
+const {authenticate, isHigherRanked} = require('../common/accessToken');
 const { needKnex } = require('../database');
 
 
@@ -7,26 +8,38 @@ const router = express.Router();
 module.exports = router;
 
 
-router.get('/unverified', [needKnex, authenticate.bind(null, {manage: true})], async (req, res) => {
+router.get('/users', [needKnex, authenticate.bind(null, 'manager')], async (req, res) => {
     try {
-        const unverifiedUsers = await req.knex('users').select(['users.id as user_id', 'users.email']).leftJoin('roles', 'users.role_id', 'roles.id').where({rolename: 'unverified'});
-        res.send(unverifiedUsers);
-    }catch(e){
-        res.sendStatus(404);
-    }
-});
-
-
-router.get('/users', [needKnex, authenticate.bind(null, {manage: true})], async (req, res) => {
-    try {
-        let users;
-        if (req.body.user.admin){
-            users = await req.knex('users').select(['users.id as user_id', 'users.email']);
-        }else{
-            users = await req.knex('users').select(['users.id as user_id', 'users.email']).leftJoin('roles', 'users.role_id', 'roles.id').where({admin: false});
+        let users=[];
+        if (req.user.role==='super'){
+            users = await req.knex('users').select(['id as user_id', 'email', 'role']);
+        }else if (req.user.role==='admin'){
+            users = await req.knex('users').select(['id as user_id', 'email', 'role']).whereNotIn('role', ['admin', 'super']);
+        }else if (req.user.role==='manager'){
+            users = await req.knex('users').select(['id as user_id', 'email', 'role']).whereNotIn('role', ['admin', 'super', 'manager']);
         }
         res.send(users);
     }catch(e){
-        res.sendStatus(404);
+        console.error('ERROR GET /manage/users', req.body, e);
+        res.sendStatus(400);
+    }
+});
+
+router.post('/user/role', [needKnex, authenticate.bind(null, 'manager')], async (req, res) => {
+    try {
+        const [fieldCheck, newRole, user_id] = verifyFields(req.body, ['new_role:~super,admin,manager,member,unverified', 'user_id:number']);
+        if (fieldCheck) return res.status(400).json('failed field check: '+fieldCheck);
+
+        const [{role: oldRole}] = await req.knex('users').select('role').where({id: user_id});
+
+        if ((isHigherRanked(req.user.role, oldRole) && isHigherRanked(req.user.role, newRole)) || req.user.role==='super'){
+            const [updatedUser] = await req.knex('users').update({role: newRole}).where({id: user_id}).returning(['id as user_id', 'email', 'role']);
+            return res.status(200).json(updatedUser);
+        }
+        return res.sendStatus(403);
+
+    }catch(e){
+        console.error('ERROR POST /manage/user/role', req.body, e);
+        res.sendStatus(400);
     }
 });
