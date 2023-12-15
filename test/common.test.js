@@ -26,6 +26,14 @@ describe('common', ()=>{
         const [fieldCheck] = verifyFields({},['a:string:?', 'b:string:?']);
         expect(fieldCheck).toBe('');
     });
+    it('verifyFields passes when item is passed that is in the list', ()=>{
+        const [fieldCheck] = verifyFields({a: 'def'},['a:~abc,def,ghi']);
+        expect(fieldCheck).toBe('');
+    });
+    it('verifyFields fails when item is passed that is not in the list', ()=>{
+        const [fieldCheck] = verifyFields({a: 'adg'},['a:~abc,def,ghi']);
+        expect(fieldCheck).toBe('expected a field of value adg to be one of these values abc,def,ghi');
+    });
 
     it('verifyFields returns changed string when modifiers are passed', ()=>{
         const testObj = {
