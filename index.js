@@ -1,3 +1,7 @@
+for (const a of process.argv) {
+        if (a.toLowerCase().trim() === '-sqlite') process.env.FORCE_SQLITE=true;
+}
+
 const {spawn} = require('node:child_process');
 
 const {app} = require('./app.js');
