@@ -17,7 +17,7 @@ if (process.env.NODE_ENV!=='test'){
 }
 
 
-app.use(cors({ origin: ['http://' + domain, 'http://192.168.1.14:4001'], credentials: true }))
+app.use(cors({ origin: ['http://' + domain, 'http://localhost'], credentials: true }))
 app.use(helmet());
 app.use(cookieparser());
 app.use(express.json());

@@ -152,11 +152,11 @@ router.post('/login', needKnex, async (req, res) => {
                 res.cookie('accessToken', accessToken, {
                     httpOnly: true,
                     sameSite: 'lax',
-                    domain: '192.168.1.14'
+                    domain: 'localhost'
                 });
                 res.cookie('hashcess', getHash(hashcess), {
                     sameSite: 'lax',
-                    domain: '192.168.1.14'
+                    domain: 'localhost'
                 });
                 return res.sendStatus(200);
             }
@@ -208,12 +208,12 @@ router.post('/verifyemail', needKnex, async (req, res) => {
                     httpOnly: true,
                     sameSite: 'lax',
                     secure: true,
-                    domain: '192.168.1.14'
+                    domain: 'localhost'
                 });
                 res.cookie('hashcess', getHash(hashcess), {
                     sameSite: 'lax',
                     secure: true,
-                    domain: '192.168.1.14'
+                    domain: 'localhost'
                 });
                 return res.status(200).json(userId);
             }
