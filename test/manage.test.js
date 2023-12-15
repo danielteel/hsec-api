@@ -103,6 +103,17 @@ describe("Manage", () => {
         done();
     });
 
+    it('GET /manage/users with role filter returns only users with that role', async done => {
+        await get('manage/users/unverified', {}, async res => {
+            const usersExpected=testUsers.filter(u=>u.role==='unverified').map(u=>({user_id: u.id, email: u.email, role: u.role}));
+            res.body.sort((a,b)=>a.user_id-b.user_id);
+
+            expect(res.statusCode).toEqual(200);
+            expect(res.body).toEqual(usersExpected);
+        }, testSuperUser.cookies);
+        done();
+    });
+
     it('POST /manage/user/role with bad data fails', async (done) => {
         await post('manage/user/role', {user_id: testUnverifiedUser.id, new_role: 'shclem'}, async (res)=>{
             expect(res.statusCode).toEqual(400);
@@ -240,4 +251,5 @@ describe("Manage", () => {
         }, testAdminUser.cookies);
         done();
     });
+
 });

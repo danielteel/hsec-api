@@ -8,8 +8,11 @@ const router = express.Router();
 module.exports = router;
 
 
-router.get('/users', [needKnex, authenticate.bind(null, 'manager')], async (req, res) => {
+router.get('/users/:roleFilter?', [needKnex, authenticate.bind(null, 'manager')], async (req, res) => {
     try {
+        const [fieldCheck, roleFilter] = verifyFields(req.params, ['roleFilter:~super,admin,manager,member,unverified:?']);
+        if (fieldCheck) return res.status(400).json('failed field check: '+fieldCheck);
+
         let users=[];
         if (req.user.role==='super'){
             users = await req.knex('users').select(['id as user_id', 'email', 'role']);
@@ -17,6 +20,9 @@ router.get('/users', [needKnex, authenticate.bind(null, 'manager')], async (req,
             users = await req.knex('users').select(['id as user_id', 'email', 'role']).whereNotIn('role', ['admin', 'super']);
         }else if (req.user.role==='manager'){
             users = await req.knex('users').select(['id as user_id', 'email', 'role']).whereNotIn('role', ['admin', 'super', 'manager']);
+        }
+        if (roleFilter){
+            users=users.filter(u=>u.role===roleFilter);
         }
         res.send(users);
     }catch(e){

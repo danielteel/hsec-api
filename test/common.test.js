@@ -30,6 +30,10 @@ describe('common', ()=>{
         const [fieldCheck] = verifyFields({a: 'def'},['a:~abc,def,ghi']);
         expect(fieldCheck).toBe('');
     });
+    it('verifyFields passes when an item list is passed as optional with no data', ()=>{
+        const [fieldCheck] = verifyFields({},['a:~abc,def,ghi:?']);
+        expect(fieldCheck).toBe('');
+    });
     it('verifyFields fails when item is passed that is not in the list', ()=>{
         const [fieldCheck] = verifyFields({a: 'adg'},['a:~abc,def,ghi']);
         expect(fieldCheck).toBe('expected a field of value adg to be one of these values abc,def,ghi');
