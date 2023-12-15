@@ -113,6 +113,13 @@ describe("Manage", () => {
         }, testSuperUser.cookies);
         done();
     });
+    it('GET /manage/users with role filter returns nothing when trying to get higher role', async done => {
+        await get('manage/users/admin', {}, async res => {
+            expect(res.statusCode).toEqual(200);
+            expect(res.body).toEqual([]);
+        }, testManagerUser.cookies);
+        done();
+    });
 
     it('POST /manage/user/role with bad data fails', async (done) => {
         await post('manage/user/role', {user_id: testUnverifiedUser.id, new_role: 'shclem'}, async (res)=>{
@@ -249,6 +256,41 @@ describe("Manage", () => {
         await post('manage/user/role', {user_id: testSuperUser.id, new_role: 'member'}, async (res)=>{
             expect(res.statusCode).toEqual(403);
         }, testAdminUser.cookies);
+        done();
+    });
+
+    it('POST /manage/user/email admins can change less ranked accounts emails', async (done) => {
+        await post('manage/user/email', {user_id: testUnverifiedUser, new_email: 'yolo@yolo.com'}, async res => {
+            expect(res.statusCode).toEqual(200);
+            await post('manage/user/email', {user_id: testUnverifiedUser, new_email: testUnverifiedUser.email}, null, testAdminUser.cookies);
+        }, testAdminUser.cookies);
+
+        await post('manage/user/email', {user_id: testManagerUser, new_email: 'yolo@yolo.com'}, async res => {
+            expect(res.statusCode).toEqual(200);
+            await post('manage/user/email', {user_id: testManagerUser, new_email: testManagerUser.email}, null, testAdminUser.cookies);
+        }, testAdminUser.cookies);
+        done();
+    });
+    it('POST /manage/user/email supers can change anyones emails', async (done) => {
+        await post('manage/user/email', {user_id: testUnverifiedUser, new_email: 'yolo@yolo.com'}, async res => {
+            expect(res.statusCode).toEqual(200);
+            await post('manage/user/email', {user_id: testUnverifiedUser, new_email: testUnverifiedUser.email}, null, testSuperUser.cookies);
+        }, testSuperUser.cookies);
+
+        await post('manage/user/email', {user_id: testManagerUser, new_email: 'yolo@yolo.com'}, async res => {
+            expect(res.statusCode).toEqual(200);
+            await post('manage/user/email', {user_id: testManagerUser, new_email: testManagerUser.email}, null, testSuperUser.cookies);
+        }, testSuperUser.cookies);
+
+        await post('manage/user/email', {user_id: testAdminUser, new_email: 'yolo@yolo.com'}, async res => {
+            expect(res.statusCode).toEqual(200);
+            await post('manage/user/email', {user_id: testAdminUser, new_email: testAdminUser.email}, null, testSuperUser.cookies);
+        }, testSuperUser.cookies);
+
+        await post('manage/user/email', {user_id: testSuperUser, new_email: 'yolo@yolo.com'}, async res => {
+            expect(res.statusCode).toEqual(200);
+            await post('manage/user/email', {user_id: testSuperUser, new_email: testSuperUser.email}, null, testSuperUser.cookies);
+        }, testSuperUser.cookies);
         done();
     });
 
