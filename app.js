@@ -18,7 +18,7 @@ if (process.env.NODE_ENV!=='test'){
 
 
 app.use(cors({ origin: ['http://' + domain, 'http://localhost:3000'], credentials: true }))
-app.use(helmet());
+//app.use(helmet());
 app.use(cookieparser());
 app.use(express.json());
 
