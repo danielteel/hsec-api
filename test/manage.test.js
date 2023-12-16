@@ -18,6 +18,7 @@ const testUsers=[testSuperUser, testUnverifiedUser, testUnverifiedUser2, testMem
 
 
 const {app} = require('../app.js');
+const { getTestMessageUrl } = require('nodemailer');
 const request = require('supertest')(app);
 const post = requestHelper.bind(null, request, 'post');
 const get = requestHelper.bind(null, request, 'get');
@@ -185,7 +186,7 @@ describe("Manage", () => {
             expect(res.statusCode).toEqual(200);
             expect(res.body).toEqual({user_id: testUnverifiedUser.id, email: testUnverifiedUser.email, role: 'super'});
         }, testSuperUser.cookies);
-        
+
         //Setback to original state
         await post('manage/user/role', {user_id: testUnverifiedUser.id, new_role: 'unverified'}, async (res)=>{
             expect(res.statusCode).toEqual(200);
@@ -267,9 +268,16 @@ describe("Manage", () => {
                 await post('manage/user/email', {user_id: userToChange.id, new_email: userToChange.email}, null, userMakingChange.cookies);
             }, userMakingChange.cookies);
         }
+        async function checkCantChangeEmail(userToChange, userMakingChange){
+            await post('manage/user/email', {user_id: userToChange.id, new_email: 'yolo@34yolo.com'}, async res => {
+                expect(res.statusCode).toEqual(403)
+            }, userMakingChange.cookies);
+        }
         await checkCanChangeEmail(testUnverifiedUser, testAdminUser);
         await checkCanChangeEmail(testMemberUser, testAdminUser);
         await checkCanChangeEmail(testManagerUser, testAdminUser);
+        await checkCantChangeEmail(testAdminUser, testAdminUser);
+        await checkCantChangeEmail(testSuperUser, testAdminUser);
         done();
     });
 
@@ -289,9 +297,18 @@ describe("Manage", () => {
         done();
     });
 
-    it('POST /manage/user/emaiil fails when not an admin or suoer', async (done)=>{
-        expect(true).toEqual(false);
+    it('POST /manage/user/emaiil fails when not an admin or super', async (done)=>{
+        async function checkCantChangeEmail(userToChange, userMakingChange){
+            await post('manage/user/email', {user_id: userToChange.id, new_email: 'yolo@34yolo.com'}, async res => {
+                expect(res.statusCode).toEqual(403)
+            }, userMakingChange.cookies);
+        }
+        for (const utc of testUsers){
+            for (const umc of [testUnverifiedUser, testMemberUser, testManagerUser]){
+                await checkCantChangeEmail(utc, umc);
+            }
+        }
         done();
-    })
+    });
 
 });
