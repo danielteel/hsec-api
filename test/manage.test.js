@@ -297,7 +297,7 @@ describe("Manage", () => {
         done();
     });
 
-    it('POST /manage/user/emaiil fails when not an admin or super', async (done)=>{
+    it('POST /manage/user/email fails when not an admin or super', async (done)=>{
         async function checkCantChangeEmail(userToChange, userMakingChange){
             await post('manage/user/email', {user_id: userToChange.id, new_email: 'yolo@34yolo.com'}, async res => {
                 expect(res.statusCode).toEqual(403)
