@@ -49,3 +49,22 @@ router.post('/user/role', [needKnex, authenticate.bind(null, 'manager')], async 
         res.sendStatus(400);
     }
 });
+
+router.post('/user/email', [needKnex, authenticate.bind(null, 'admin')], async (req, res)=>{
+    try {
+        const [fieldCheck, newEmail, user_id] = verifyFields(req.body, ['new_email:string:*:lt', 'user_id:number']);
+        if (fieldCheck) return res.status(400).json('failed field check: '+fieldCheck);
+
+        const [{role}] = await req.knex('users').select('role').where({id: user_id});
+   
+        if (req.user.role==='admin' && (role==='super' || role==='admin')){
+                return res.sendStatus(403);
+        }
+        const [updatedUser] = await req.knex('users').update({email: newEmail}).where({id: user_id}).returning(['id as user_id', 'email', 'role']);
+        return res.status(200).json(updatedUser);
+
+    }catch(e){
+        console.error('ERROR POST /manage/user/email', req.body, e);
+        res.sendStatus(400);
+    }
+})

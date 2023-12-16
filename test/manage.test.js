@@ -260,38 +260,38 @@ describe("Manage", () => {
     });
 
     it('POST /manage/user/email admins can change less ranked accounts emails', async (done) => {
-        await post('manage/user/email', {user_id: testUnverifiedUser, new_email: 'yolo@yolo.com'}, async res => {
-            expect(res.statusCode).toEqual(200);
-            await post('manage/user/email', {user_id: testUnverifiedUser, new_email: testUnverifiedUser.email}, null, testAdminUser.cookies);
-        }, testAdminUser.cookies);
-
-        await post('manage/user/email', {user_id: testManagerUser, new_email: 'yolo@yolo.com'}, async res => {
-            expect(res.statusCode).toEqual(200);
-            await post('manage/user/email', {user_id: testManagerUser, new_email: testManagerUser.email}, null, testAdminUser.cookies);
-        }, testAdminUser.cookies);
+        async function checkCanChangeEmail(userToChange, userMakingChange){
+            await post('manage/user/email', {user_id: userToChange.id, new_email: 'yolo@34yolo.com'}, async res => {
+                expect(res.statusCode).toEqual(200)
+                expect(res.body).toEqual({user_id: userToChange.id, email: 'yolo@34yolo.com', role: userToChange.role});
+                await post('manage/user/email', {user_id: userToChange.id, new_email: userToChange.email}, null, userMakingChange.cookies);
+            }, userMakingChange.cookies);
+        }
+        await checkCanChangeEmail(testUnverifiedUser, testAdminUser);
+        await checkCanChangeEmail(testMemberUser, testAdminUser);
+        await checkCanChangeEmail(testManagerUser, testAdminUser);
         done();
     });
+
     it('POST /manage/user/email supers can change anyones emails', async (done) => {
-        await post('manage/user/email', {user_id: testUnverifiedUser, new_email: 'yolo@yolo.com'}, async res => {
-            expect(res.statusCode).toEqual(200);
-            await post('manage/user/email', {user_id: testUnverifiedUser, new_email: testUnverifiedUser.email}, null, testSuperUser.cookies);
-        }, testSuperUser.cookies);
-
-        await post('manage/user/email', {user_id: testManagerUser, new_email: 'yolo@yolo.com'}, async res => {
-            expect(res.statusCode).toEqual(200);
-            await post('manage/user/email', {user_id: testManagerUser, new_email: testManagerUser.email}, null, testSuperUser.cookies);
-        }, testSuperUser.cookies);
-
-        await post('manage/user/email', {user_id: testAdminUser, new_email: 'yolo@yolo.com'}, async res => {
-            expect(res.statusCode).toEqual(200);
-            await post('manage/user/email', {user_id: testAdminUser, new_email: testAdminUser.email}, null, testSuperUser.cookies);
-        }, testSuperUser.cookies);
-
-        await post('manage/user/email', {user_id: testSuperUser, new_email: 'yolo@yolo.com'}, async res => {
-            expect(res.statusCode).toEqual(200);
-            await post('manage/user/email', {user_id: testSuperUser, new_email: testSuperUser.email}, null, testSuperUser.cookies);
-        }, testSuperUser.cookies);
+        async function checkCanChangeEmail(userToChange, userMakingChange){
+            await post('manage/user/email', {user_id: userToChange.id, new_email: 'yolo@34yolo.com'}, async res => {
+                expect(res.statusCode).toEqual(200)
+                expect(res.body).toEqual({user_id: userToChange.id, email: 'yolo@34yolo.com', role: userToChange.role});
+                await post('manage/user/email', {user_id: userToChange.id, new_email: userToChange.email}, null, userMakingChange.cookies);
+            }, userMakingChange.cookies);
+        }
+        await checkCanChangeEmail(testUnverifiedUser, testSuperUser);
+        await checkCanChangeEmail(testMemberUser, testSuperUser);
+        await checkCanChangeEmail(testManagerUser, testSuperUser);
+        await checkCanChangeEmail(testAdminUser, testSuperUser);
+        await checkCanChangeEmail(testSuperUser, testSuperUser);
         done();
     });
+
+    it('POST /manage/user/emaiil fails when not an admin or suoer', async (done)=>{
+        expect(true).toEqual(false);
+        done();
+    })
 
 });
