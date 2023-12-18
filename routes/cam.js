@@ -16,12 +16,12 @@ function isValidFile(str){
 router.get('/:file', authenticate.bind(null, 'member'), (req, res) => {
     try {
         if (!isValidFile(req.params.file)){
-            res.sendStatus(404);
+            res.status(404).json({error: 'not found'});
         }else{
             res.sendFile(process.env.CAM_DIR + req.params.file);
         }
     } catch (e){
         console.error('ERROR /cam/:file', req.body, e);
-        res.sendStatus(404);
+        res.status(400).json({error: 'error'});
     }
 });

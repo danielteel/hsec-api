@@ -11,7 +11,7 @@ module.exports = router;
 router.get('/users/:roleFilter?', [needKnex, authenticate.bind(null, 'manager')], async (req, res) => {
     try {
         const [fieldCheck, roleFilter] = verifyFields(req.params, ['roleFilter:~super,admin,manager,member,unverified:?']);
-        if (fieldCheck) return res.status(400).send('failed field check: '+fieldCheck);
+        if (fieldCheck) return res.status(400).json({error: 'failed field check: '+fieldCheck});
 
         let users=[];
         if (req.user.role==='super'){
@@ -27,14 +27,14 @@ router.get('/users/:roleFilter?', [needKnex, authenticate.bind(null, 'manager')]
         res.json(users);
     }catch(e){
         console.error('ERROR GET /manage/users', req.body, e);
-        res.sendStatus(400);
+        return res.status(400).json({error: 'error'});
     }
 });
 
 router.post('/user/role', [needKnex, authenticate.bind(null, 'manager')], async (req, res) => {
     try {
         const [fieldCheck, newRole, user_id] = verifyFields(req.body, ['new_role:~super,admin,manager,member,unverified', 'user_id:number']);
-        if (fieldCheck) return res.status(400).send('failed field check: '+fieldCheck);
+        if (fieldCheck) return res.status(400).json({error: 'failed field check: '+fieldCheck});
 
         const [{role: oldRole}] = await req.knex('users').select('role').where({id: user_id});
 
@@ -42,29 +42,29 @@ router.post('/user/role', [needKnex, authenticate.bind(null, 'manager')], async 
             const [updatedUser] = await req.knex('users').update({role: newRole}).where({id: user_id}).returning(['id as user_id', 'email', 'role']);
             return res.status(200).json(updatedUser);
         }
-        return res.sendStatus(403);
+        return res.status(403).json({error: 'insufficent privileges'});
 
     }catch(e){
         console.error('ERROR POST /manage/user/role', req.body, e);
-        res.sendStatus(400);
+        return res.status(400).json({error: 'error'});
     }
 });
 
 router.post('/user/email', [needKnex, authenticate.bind(null, 'admin')], async (req, res)=>{
     try {
         const [fieldCheck, newEmail, user_id] = verifyFields(req.body, ['new_email:string:*:lt', 'user_id:number']);
-        if (fieldCheck) return res.status(400).send('failed field check: '+fieldCheck);
+        if (fieldCheck) return res.status(400).json({error: 'failed field check: '+fieldCheck});
 
         const [{role}] = await req.knex('users').select('role').where({id: user_id});
    
         if (req.user.role==='admin' && (role==='super' || role==='admin')){
-                return res.sendStatus(403);
+                return res.status(403).json({error: 'insufficent privileges'});
         }
         const [updatedUser] = await req.knex('users').update({email: newEmail}).where({id: user_id}).returning(['id as user_id', 'email', 'role']);
         return res.status(200).json(updatedUser);
 
     }catch(e){
         console.error('ERROR POST /manage/user/email', req.body, e);
-        res.sendStatus(400);
+        return res.status(400).json({error: 'error'});
     }
 })
