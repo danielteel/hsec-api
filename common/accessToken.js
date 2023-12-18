@@ -118,7 +118,7 @@ async function authenticate(minRole, req, res, next){
                     notAllowed ||= minRole==='member' && !['super', 'admin', 'manager', 'member'].includes(user.role);
                     notAllowed ||= minRole==='unverified' && !['super', 'admin', 'manager', 'member', 'unverified'].includes(user.role);
                     if (notAllowed){
-                        return res.sendStatus(403);
+                        return res.status(403).json({error: 'insufficient privileges'});
                     }
                     req.user=user;
                     return next();
@@ -137,10 +137,10 @@ async function authenticate(minRole, req, res, next){
                 });
             }
         }
-        return res.status(401).json('log in');
+        return res.status(401).json({error: 'log in'});
     }catch (e){
         console.error('ERROR authenticate', e);
-        return res.status(400).json('failed');
+        return res.status(400).json({error: 'failed'});
     }
 }
 

@@ -331,7 +331,7 @@ describe("User", () => {
 
         await get('user/me', {}, (res)=>{
             expect(res.statusCode).toEqual(401);
-            expect(res.body).toEqual('log in');
+            expect(res.body).toEqual({error: 'log in'});
         }, cookies);
 
         done();
