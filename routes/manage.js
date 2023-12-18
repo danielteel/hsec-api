@@ -11,7 +11,7 @@ module.exports = router;
 router.get('/users/:roleFilter?', [needKnex, authenticate.bind(null, 'manager')], async (req, res) => {
     try {
         const [fieldCheck, roleFilter] = verifyFields(req.params, ['roleFilter:~super,admin,manager,member,unverified:?']);
-        if (fieldCheck) return res.status(400).json('failed field check: '+fieldCheck);
+        if (fieldCheck) return res.status(400).send('failed field check: '+fieldCheck);
 
         let users=[];
         if (req.user.role==='super'){
@@ -24,7 +24,7 @@ router.get('/users/:roleFilter?', [needKnex, authenticate.bind(null, 'manager')]
         if (roleFilter){
             users=users.filter(u=>u.role===roleFilter);
         }
-        res.send(users);
+        res.json(users);
     }catch(e){
         console.error('ERROR GET /manage/users', req.body, e);
         res.sendStatus(400);
@@ -34,7 +34,7 @@ router.get('/users/:roleFilter?', [needKnex, authenticate.bind(null, 'manager')]
 router.post('/user/role', [needKnex, authenticate.bind(null, 'manager')], async (req, res) => {
     try {
         const [fieldCheck, newRole, user_id] = verifyFields(req.body, ['new_role:~super,admin,manager,member,unverified', 'user_id:number']);
-        if (fieldCheck) return res.status(400).json('failed field check: '+fieldCheck);
+        if (fieldCheck) return res.status(400).send('failed field check: '+fieldCheck);
 
         const [{role: oldRole}] = await req.knex('users').select('role').where({id: user_id});
 
@@ -53,7 +53,7 @@ router.post('/user/role', [needKnex, authenticate.bind(null, 'manager')], async 
 router.post('/user/email', [needKnex, authenticate.bind(null, 'admin')], async (req, res)=>{
     try {
         const [fieldCheck, newEmail, user_id] = verifyFields(req.body, ['new_email:string:*:lt', 'user_id:number']);
-        if (fieldCheck) return res.status(400).json('failed field check: '+fieldCheck);
+        if (fieldCheck) return res.status(400).send('failed field check: '+fieldCheck);
 
         const [{role}] = await req.knex('users').select('role').where({id: user_id});
    
