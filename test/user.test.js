@@ -143,6 +143,15 @@ describe("User", () => {
         done();
     });
 
+    it("POST /user/login, logging in with remember set to true will send back a cookie with an expiration date far in the future", async done => {
+        await post('user/login', {...testUserJeff, remember: true}, (res)=>{
+            expect(res.headers['set-cookie'][0]).toContain('Max-Age=31536000');
+            expect(res.headers['set-cookie'][1]).toContain('Max-Age=31536000');
+            expect(res.statusCode).toEqual(200);
+        });
+        done();
+    });
+
     it('POST /user/changeemail, without access token fails', async (done) => {
         await post('user/changeemail', {newEmail: 'yolo@yolo.com'}, (res) => {
             expect(res.statusCode).toEqual(401);

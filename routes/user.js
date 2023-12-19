@@ -127,7 +127,7 @@ router.post('/login', needKnex, async (req, res) => {
     try {
         const knex=req.knex;
         
-        const [fieldCheck, email, password] = verifyFields(req.body, ['email:string:*:lt', 'password:string']);
+        const [fieldCheck, email, password, remember] = verifyFields(req.body, ['email:string:*:lt', 'password:string', 'remember:boolean:?']);
         if (fieldCheck) return res.status(400).json({error: 'failed field check: '+fieldCheck});
 
         const passHash = getHash(password);
@@ -137,16 +137,22 @@ router.post('/login', needKnex, async (req, res) => {
             if (user.email===email && user.pass_hash===passHash){
                 const hashcess = generateVerificationCode();
                 const accessToken = generateAccessToken({id: user.id, session: user.session, hashcess});
+                let maxAgeObj = {};
+                if (remember){
+                    maxAgeObj={maxAge: 31536000000};
+                }
                 res.cookie('accessToken', accessToken, {
                     httpOnly: true,
                     sameSite: 'lax',
                     secure: true,
-                    domain: domain
+                    domain: domain,
+                    ...maxAgeObj
                 });
                 res.cookie('hashcess', getHash(hashcess), {
                     sameSite: 'lax',
                     secure: true,
-                    domain: domain
+                    domain: domain,
+                    ...maxAgeObj
                 });
                 return res.json({id: user.id, email: user.email, role: user.role});
             }
