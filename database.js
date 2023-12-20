@@ -35,12 +35,14 @@ function connect(knexProfile, onConnect, maxAttempts=60, logOut=console.log){
             try {
                 localKnex = knexFn(knexProfile);
                 await localKnex.raw("SELECT 1");
-                let returned = onConnect(localKnex, attempt);
-                if (Array.isArray(returned) || returned instanceof Promise){
-                    if (!Array.isArray(returned)) returned = [returned];
-                    Promise.all(returned).then( () => {
-                        resolveFn(localKnex);
-                    })
+                if (onConnect){
+                    let returned = onConnect(localKnex, attempt);
+                    if (Array.isArray(returned) || returned instanceof Promise){
+                        if (!Array.isArray(returned)) returned = [returned];
+                        Promise.all(returned).then( () => {
+                            resolveFn(localKnex);
+                        })
+                    }
                 }else{
                     resolveFn(localKnex);
                 }
