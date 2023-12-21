@@ -34,7 +34,9 @@ router.post('/add', [needKnex, authenticate.bind(null, 'admin')], async (req, re
         
         try{
             await fetch('127.0.0.1:'+process.env.FFMPEG_PORT+'/update/'+process.env.FFMPEG_SECRET);
-        }catch{}
+        }catch(e){
+            console.error('ERROR POST /cam/add', req.body, e);
+        }
 
         res.status(200).json({status:'success'});
     }catch(e){
