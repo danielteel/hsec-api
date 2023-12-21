@@ -2,12 +2,23 @@ const {closeKnex, requestHelper, waitForKnexPromise} =require('./helpers');
 const {getHash}=require('../common/common');
 const path = require('path');
 const fs=require('fs');
+const mockFetch=jest.fn(()=>require('./mocks/fetch'));
+jest.mock('node-fetch', ()=>mockFetch);
+
 
 //Sets automatically created super user, set these before we require('../app.js') so database isnt seeded yet
 process.env.SUPER_PASSWORD = "superpass";
 process.env.SUPER_USERNAME = "superuser";
-
+process.env.FFMPEG_SECRET = '1twoputitinmyshoe';
+process.env.FFMPEG_PORT = '4003';
 process.env.CAM_DIR=path.join(__dirname,'mockfiles/');
+
+const testFormats = [
+    {type: 'jpg', file: 'il.jpg', title:'I-Lo', w: 640, h:360, qual: 12, fps: 0.66, block: null},
+    {type: 'jpg', file: 'ih.jpg', title:'I-Hi', w: 1280, h:720, qual: 11, fps: 0.66, block: null},
+    {type: 'hls', file: 'hqll.m3u8', title:'V-Lo', w: 640, h: 360, qual: 24, fps: 4, block: 2},
+    {type: 'hls', file: 'best.m3u8', title:'V-Hi', w: 1280, h: 720, qual: 24, fps: 4, block: 2}
+];
 
 const testSuperUser =       {email: process.env.SUPER_USERNAME, password: process.env.SUPER_PASSWORD, role: 'super'};
 const testUnverifiedUser =  {email:'unverified@test.com',  password: 'password',  role: 'unverified'};
@@ -50,12 +61,17 @@ async function insertUsers(db){
 beforeAll( async done => {
     knex = await waitForKnexPromise();
     await insertUsers(knex);
+    await knex('formats').insert(testFormats);
     done();
 
 })
 
 afterAll( () => {
     return closeKnex();
+});
+
+beforeEach( ()=>{
+    mockFetch.mockClear();
 });
 
 
@@ -96,7 +112,11 @@ describe("Cam", () => {
         done();
     });
 
-    it('GET /cam/details for unverified user fails to fetch', async (done)=>{
+    it('GET /cam/details for unauthorized users fails to fetch', async (done)=>{
+        await get('cam/details', {}, (res)=>{
+            expect(res.statusCode).toEqual(401);
+        });
+
         await get('cam/details', {}, (res)=>{
             expect(res.statusCode).toEqual(403);
         }, testUnverifiedUser.cookies);
@@ -111,6 +131,103 @@ describe("Cam", () => {
                 expect(res.statusCode).toEqual(200);
             }, user.cookies);
         }
+        done();
+    });
+
+    it('POST /cam/delete fails with unauthorized users', async done => {
+        const formats = await knex('formats').select('*');
+        const unauthUsers = [testUnverifiedUser, testMemberUser, testManagerUser];
+
+        await post('cam/delete', {which: formats[0].id}, res=>{
+            expect(res.statusCode).toEqual(401);
+        });
+
+        for (const user of unauthUsers){
+            await post('cam/delete', {which: formats[0].id}, res=>{
+                expect(res.statusCode).toEqual(403);
+            }, user.cookies);
+        }
+        done();
+    });
+
+    it('POST /cam/delete deletes a format', async done => {
+        const prevFormats = await knex('formats').select('*');
+
+        await post('cam/delete', {which: prevFormats[0].id}, res=>{
+            expect(res.statusCode).toEqual(200);
+        }, testAdminUser.cookies);
+        
+        const nowFormats = await knex('formats').select('*');
+
+        expect(nowFormats).toEqual(prevFormats.filter(f => f.id!==prevFormats[0].id));
+
+        expect(mockFetch).toHaveBeenCalledTimes(1);
+        expect(mockFetch).toHaveBeenCalledWith('127.0.0.1:'+process.env.FFMPEG_PORT+'/update/'+process.env.FFMPEG_SECRET);
+        done();
+    });
+    
+    it('POST /cam/delete deletes multiple formats', async done => {
+        const prevFormats = await knex('formats').select('*');
+
+        await post('cam/delete', {which: [prevFormats[0].id, prevFormats[1].id]}, res=>{
+            expect(res.statusCode).toEqual(200);
+        }, testAdminUser.cookies);
+        
+        const nowFormats = await knex('formats').select('*');
+
+        expect(nowFormats).toEqual(prevFormats.filter(f => f.id!==prevFormats[0].id && f.id!==prevFormats[1].id));
+
+        expect(mockFetch).toHaveBeenCalledTimes(1);
+        expect(mockFetch).toHaveBeenCalledWith('127.0.0.1:'+process.env.FFMPEG_PORT+'/update/'+process.env.FFMPEG_SECRET);
+        done();
+    });
+    
+    it('POST /cam/add fails with unauthorized users', async done => {
+        const unauthUsers = [testUnverifiedUser, testMemberUser, testManagerUser];
+
+        await post('cam/add', {type: 'jpg', file: 'il.jpg', title:'I-Lo', w: 640, h:360, qual: 12, fps: 0.66, block: null}, res=>{
+            expect(res.statusCode).toEqual(401);
+        });
+
+        for (const user of unauthUsers){
+            await post('cam/add', {type: 'jpg', file: 'il.jpg', title:'I-Lo', w: 640, h:360, qual: 12, fps: 0.66, block: null}, res=>{
+                expect(res.statusCode).toEqual(403);
+            }, user.cookies);
+        }
+
+        done();
+    });
+
+    it('POST /cam/add adds a jpg format as an admin', async done => {
+        const prevFormats = await knex('formats').select('*');
+        const formatToAdd = {id: null, type: 'jpg', file: 'il.jpg', title:'I-Lo', w: 640, h:360, qual: 12, fps: 0.66, block: 0};
+
+        await post('cam/add', formatToAdd, res=>{
+            expect(res.statusCode).toEqual(200);
+        }, testAdminUser.cookies);
+        
+        const nowFormats = await knex('formats').select('*');
+    
+        expect(nowFormats.map(r=>({...r, id: null}))).toEqual([...prevFormats, formatToAdd].map(r=>({...r, id: null})));
+        expect(mockFetch).toHaveBeenCalledTimes(1);
+        expect(mockFetch).toHaveBeenCalledWith('127.0.0.1:'+process.env.FFMPEG_PORT+'/update/'+process.env.FFMPEG_SECRET);
+        done();
+    });    
+
+    it('POST /cam/add adds a hls format as a super', async done => {
+        const prevFormats = await knex('formats').select('*');
+        const formatToAdd = {id: null, type: 'hls', file: 'il.m3u8', title:'I-Lo', w: 640, h:360, qual: 12, fps: 0.66, block: 3};
+
+        await post('cam/add', formatToAdd, res=>{
+            expect(res.statusCode).toEqual(200);
+        }, testSuperUser.cookies);
+        
+        const nowFormats = await knex('formats').select('*');
+    
+        expect(nowFormats.map(r=>({...r, id: null}))).toEqual([...prevFormats, formatToAdd].map(r=>({...r, id: null})));
+        
+        expect(mockFetch).toHaveBeenCalledTimes(1);
+        expect(mockFetch).toHaveBeenCalledWith('127.0.0.1:'+process.env.FFMPEG_PORT+'/update/'+process.env.FFMPEG_SECRET);
         done();
     });
 });

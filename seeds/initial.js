@@ -8,7 +8,7 @@ exports.seed = async function(knex) {
     await knex('formats').del();
     await knex('crypto').del();
 
-    
+
     const formats = [
         {type: 'jpg', file: 'il.jpg', title:'I-Lo', w: 640, h:360, qual: 12, fps: 0.66, block: null},
         {type: 'jpg', file: 'ih.jpg', title:'I-Hi', w: 1280, h:720, qual: 11, fps: 0.66, block: null},
@@ -20,9 +20,5 @@ exports.seed = async function(knex) {
 
     const superPass = process.env.SUPER_PASSWORD || generateVerificationCode(8);
     const superUser = process.env.SUPER_USERNAME || ('super_'+generateVerificationCode(2));
-    if (process.env.FORCE_SQLITE){
-        console.log('super username', superUser);
-        console.log('super password', superPass);
-    }
     await knex('users').insert({email: superUser, pass_hash: getHash(superPass), role: 'super'});
 };

@@ -5,9 +5,6 @@ for (const a of process.argv) {
 const {app} = require('./app.js');
 
 
-const port = 4001;
-
-
-const server = app.listen(port, () => {
-        console.log('listening on '+port)
+app.listen(process.env.API_PORT, () => {
+        console.log('listening on '+process.env.API_PORT)
 });

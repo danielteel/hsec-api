@@ -1,7 +1,8 @@
 const express = require('express');
 const {authenticate} = require('../common/accessToken');
 const { needKnex } = require('../database');
-
+const {getHash, verifyFields, generateVerificationCode, isLegalPassword} = require('../common/common');
+const fetch = require('node-fetch');
 
 const router = express.Router();
 module.exports = router;
@@ -13,6 +14,54 @@ function isValidFile(str){
     }
     return true;
 }
+
+router.post('/add', [needKnex, authenticate.bind(null, 'admin')], async (req, res)=>{
+    try{
+        const fields = [
+            'type:~hls,jpg',
+            'file:string',
+            'title:string',
+            'w:number',
+            'h:number',
+            'qual:number',
+            'fps:number',
+            'block:number:?'
+        ]
+        const [fieldCheck, type, file, title, w, h, qual, fps, block] = verifyFields(req.body, fields);
+        if (fieldCheck) return res.status(400).json({error: 'failed field check: '+fieldCheck});
+
+        await req.knex('formats').insert({type, file, title, w, h, qual, fps, block});
+
+        await fetch('127.0.0.1:'+process.env.FFMPEG_PORT+'/update/'+process.env.FFMPEG_SECRET);
+
+        res.status(200).json({status:'success'});
+    }catch(e){
+        console.error('ERROR POST /cam/add', req.body, e);
+        return res.status(400).json({error: 'error'});
+    }
+})
+
+router.post('/delete', [needKnex, authenticate.bind(null, 'admin')], async (req, res) => {
+    try {
+        const [fieldCheck, which] = verifyFields(req.body, ['which:any']);
+        if (fieldCheck) return res.status(400).json({error: 'failed field check: '+fieldCheck})
+
+        if (typeof which==='number'){
+            await req.knex('formats').where({id: which}).delete();
+        }else if (Array.isArray(which)){
+            await req.knex('formats').whereIn('id', which).delete();
+        }else{
+            throw Error('invalid which type');
+        }
+        
+        await fetch('127.0.0.1:'+process.env.FFMPEG_PORT+'/update/'+process.env.FFMPEG_SECRET);
+        
+        res.status(200).json({status: 'success'});
+    }catch(e){
+        console.error('ERROR POST /cam/delete', req.body, e);
+        return res.status(400).json({error: 'error'});
+    }
+});
 
 router.get('/details', [needKnex, authenticate.bind(null, 'member')], async (req, res) => {
     try {
