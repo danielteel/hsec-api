@@ -1,5 +1,5 @@
 const express = require('express');
-const { getKnex, needKnex } = require('../database');
+const { needKnex } = require('../database');
 const {getHash, verifyFields, generateVerificationCode, isLegalPassword} = require('../common/common');
 const {generateAccessToken, authenticate} = require('../common/accessToken');
 const sendMail = require('../common/sendMail');

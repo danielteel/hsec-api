@@ -1,5 +1,6 @@
 const express = require('express');
 const {authenticate} = require('../common/accessToken');
+const { needKnex } = require('../database');
 
 
 const router = express.Router();
@@ -12,6 +13,16 @@ function isValidFile(str){
     }
     return true;
 }
+
+router.get('/details', [needKnex, authenticate.bind(null, 'member')], async (req, res) => {
+    try {
+        const formats = await req.knex('formats').select('*');
+        res.json(formats);
+    }catch(e){
+        console.error('ERROR GET /cam/details', req.body, e);
+        return res.status(400).json({error: 'error'});
+    }
+});
 
 router.get('/:file', authenticate.bind(null, 'member'), (req, res) => {
     try {

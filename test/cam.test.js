@@ -75,37 +75,16 @@ describe("Cam", () => {
         done();
     });
 
-    it('GET /cam/file for member works', async (done)=>{
+    it('GET /cam/file for authorized users works', async (done)=>{
+        const authUsers = [testMemberUser, testManagerUser, testAdminUser, testSuperUser];
         const fileToGet = 'blah.m3u8';
-        await get('cam/'+fileToGet, {}, (res)=>{
-            expect(res.statusCode).toEqual(200);
-            expect(res.text).toEqual(fs.readFileSync(path.join(__dirname,'mockfiles',fileToGet),'utf-8'));
-        }, testMemberUser.cookies);
-        done();
-    });
-
-    it('GET /cam/file for manager works', async (done)=>{
-        const fileToGet = 'blah.m3u8';
-        await get('cam/'+fileToGet, {}, (res)=>{
-            expect(res.statusCode).toEqual(200);
-            expect(res.text).toEqual(fs.readFileSync(path.join(__dirname,'mockfiles',fileToGet),'utf-8'));
-        }, testManagerUser.cookies);
-        done();
-    });
-    it('GET /cam/file for admin works', async (done)=>{
-        const fileToGet = 'blah.m3u8';
-        await get('cam/'+fileToGet, {}, (res)=>{
-            expect(res.statusCode).toEqual(200);
-            expect(res.text).toEqual(fs.readFileSync(path.join(__dirname,'mockfiles',fileToGet),'utf-8'));
-        }, testAdminUser.cookies);
-        done();
-    });
-    it('GET /cam/file for super works', async (done)=>{
-        const fileToGet = 'blah.m3u8';
-        await get('cam/'+fileToGet, {}, (res)=>{
-            expect(res.statusCode).toEqual(200);
-            expect(res.text).toEqual(fs.readFileSync(path.join(__dirname,'mockfiles',fileToGet),'utf-8'));
-        }, testSuperUser.cookies);
+        
+        for (const user of authUsers){
+            await get('cam/'+fileToGet, {}, (res)=>{
+                expect(res.statusCode).toEqual(200);
+                expect(res.text).toEqual(fs.readFileSync(path.join(__dirname,'mockfiles',fileToGet),'utf-8'));
+            }, user.cookies);
+        }
         done();
     });
 
@@ -117,4 +96,21 @@ describe("Cam", () => {
         done();
     });
 
+    it('GET /cam/details for unverified user fails to fetch', async (done)=>{
+        await get('cam/details', {}, (res)=>{
+            expect(res.statusCode).toEqual(403);
+        }, testUnverifiedUser.cookies);
+        done();
+    });
+    
+    it('GET /cam/details for authorized users works', async (done)=>{
+        const authUsers = [testMemberUser, testManagerUser, testAdminUser, testSuperUser];
+        
+        for (const user of authUsers){
+            await get('cam/details', {}, (res)=>{
+                expect(res.statusCode).toEqual(200);
+            }, user.cookies);
+        }
+        done();
+    });
 });
