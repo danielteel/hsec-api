@@ -8,6 +8,18 @@ exports.up = function(knex) {
         table.string('passphrase');
     }).then( () => {} );
 
+    knex.schema.createTable('formats', table => {
+        table.increments('id');
+        table.string('type').checkIn(['hls', 'jpg']);
+        table.string('file');
+        table.string('title');
+        table.integer('w');
+        table.integer('h');
+        table.integer('qual');
+        table.float('fps');
+        table.float('block');
+    }).then( () => {});
+
     knex.schema.createTable('unverified_users', table => {
         table.increments('id');
         table.timestamp('created_at').defaultTo(knex.fn.now());
@@ -48,6 +60,7 @@ exports.up = function(knex) {
 
 exports.down = function(knex) {
     knex.schema.dropTableIfExists('crypto').then(()=>{});
+    knex.schema.dropTableIfExists('formats').then(()=>{});
     knex.schema.dropTableIfExists('unverified_users').then(()=>{});
     knex.schema.dropTableIfExists('users').then(()=>{});
     knex.schema.dropTableIfExists('user_changepassword').then(()=>{});

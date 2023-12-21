@@ -5,7 +5,18 @@ exports.seed = async function(knex) {
     await knex('user_changepassword').del();
     await knex('users').del();
     await knex('unverified_users').del();
+    await knex('formats').del();
     await knex('crypto').del();
+
+    
+    const formats = [
+        {type: 'jpg', file: 'il.jpg', title:'I-Lo', w: 640, h:360, qual: 12, fps: 0.66, block: null},
+        {type: 'jpg', file: 'ih.jpg', title:'I-Hi', w: 1280, h:720, qual: 11, fps: 0.66, block: null},
+        {type: 'hls', file: 'hqll.m3u8', title:'V-Lo', w: 640, h: 360, qual: 24, fps: 4, block: 2},
+        {type: 'hls', file: 'best.m3u8', title:'V-Hi', w: 1280, h: 720, qual: 24, fps: 4, block: 2}
+    ];
+    await knex('formats').insert(formats);
+
 
     const superPass = process.env.SUPER_PASSWORD || generateVerificationCode(8);
     const superUser = process.env.SUPER_USERNAME || ('super_'+generateVerificationCode(2));
