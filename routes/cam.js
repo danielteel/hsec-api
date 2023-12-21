@@ -31,8 +31,10 @@ router.post('/add', [needKnex, authenticate.bind(null, 'admin')], async (req, re
         if (fieldCheck) return res.status(400).json({error: 'failed field check: '+fieldCheck});
 
         await req.knex('formats').insert({type, file, title, w, h, qual, fps, block});
-
-        await fetch('127.0.0.1:'+process.env.FFMPEG_PORT+'/update/'+process.env.FFMPEG_SECRET);
+        
+        try{
+            await fetch('127.0.0.1:'+process.env.FFMPEG_PORT+'/update/'+process.env.FFMPEG_SECRET);
+        }catch{}
 
         res.status(200).json({status:'success'});
     }catch(e){
@@ -54,7 +56,9 @@ router.post('/delete', [needKnex, authenticate.bind(null, 'admin')], async (req,
             throw Error('invalid which type');
         }
         
-        await fetch('127.0.0.1:'+process.env.FFMPEG_PORT+'/update/'+process.env.FFMPEG_SECRET);
+        try{
+            await fetch('127.0.0.1:'+process.env.FFMPEG_PORT+'/update/'+process.env.FFMPEG_SECRET);
+        }catch{}
         
         res.status(200).json({status: 'success'});
     }catch(e){
