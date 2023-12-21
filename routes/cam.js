@@ -33,7 +33,7 @@ router.post('/add', [needKnex, authenticate.bind(null, 'admin')], async (req, re
         await req.knex('formats').insert({type, file, title, w, h, qual, fps, block});
         
         try{
-            await fetch('127.0.0.1:'+process.env.FFMPEG_PORT+'/update/'+process.env.FFMPEG_SECRET);
+            await fetch('http://127.0.0.1:'+process.env.FFMPEG_PORT+'/update/'+process.env.FFMPEG_SECRET);
         }catch(e){
             console.error('ERROR POST /cam/add', req.body, e);
         }
@@ -59,7 +59,7 @@ router.post('/delete', [needKnex, authenticate.bind(null, 'admin')], async (req,
         }
         
         try{
-            await fetch('127.0.0.1:'+process.env.FFMPEG_PORT+'/update/'+process.env.FFMPEG_SECRET);
+            await fetch('http://127.0.0.1:'+process.env.FFMPEG_PORT+'/update/'+process.env.FFMPEG_SECRET);
         }catch{}
         
         res.status(200).json({status: 'success'});

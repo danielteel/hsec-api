@@ -210,7 +210,7 @@ describe("Cam", () => {
     
         expect(nowFormats.map(r=>({...r, id: null}))).toEqual([...prevFormats, formatToAdd].map(r=>({...r, id: null})));
         expect(mockFetch).toHaveBeenCalledTimes(1);
-        expect(mockFetch).toHaveBeenCalledWith('127.0.0.1:'+process.env.FFMPEG_PORT+'/update/'+process.env.FFMPEG_SECRET);
+        expect(mockFetch).toHaveBeenCalledWith('http://127.0.0.1:'+process.env.FFMPEG_PORT+'/update/'+process.env.FFMPEG_SECRET);
         done();
     });    
 
@@ -227,7 +227,7 @@ describe("Cam", () => {
         expect(nowFormats.map(r=>({...r, id: null}))).toEqual([...prevFormats, formatToAdd].map(r=>({...r, id: null})));
         
         expect(mockFetch).toHaveBeenCalledTimes(1);
-        expect(mockFetch).toHaveBeenCalledWith('127.0.0.1:'+process.env.FFMPEG_PORT+'/update/'+process.env.FFMPEG_SECRET);
+        expect(mockFetch).toHaveBeenCalledWith('http://127.0.0.1:'+process.env.FFMPEG_PORT+'/update/'+process.env.FFMPEG_SECRET);
         done();
     });
 });
