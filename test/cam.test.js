@@ -271,6 +271,8 @@ describe("Cam", () => {
             const nowFormats = await knex('formats').select('*');
             expect(nowFormats).toEqual(prevFormats);
         }
+        expect(mockFetch).toHaveBeenCalledTimes(2);
+        expect(mockFetch).toHaveBeenCalledWith('http://127.0.0.1:'+process.env.FFMPEG_PORT+'/update/'+process.env.FFMPEG_SECRET);
         done();
     });
 });

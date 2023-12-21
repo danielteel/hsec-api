@@ -33,6 +33,12 @@ router.post('/update', [needKnex, authenticate.bind(null, 'admin')], async (req,
         
         await req.knex('formats').update({type, file, title, w, h, qual, fps, block}).where({id});
 
+        try{
+            await fetch('http://127.0.0.1:'+process.env.FFMPEG_PORT+'/update/'+process.env.FFMPEG_SECRET);
+        }catch(e){
+            console.error('ERROR POST /cam/update', req.body, e);
+        }
+
         const formats = await req.knex('formats').select('*');
         res.json(formats);
 
