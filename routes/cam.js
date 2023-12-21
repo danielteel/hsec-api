@@ -60,7 +60,9 @@ router.post('/delete', [needKnex, authenticate.bind(null, 'admin')], async (req,
         
         try{
             await fetch('http://127.0.0.1:'+process.env.FFMPEG_PORT+'/update/'+process.env.FFMPEG_SECRET);
-        }catch{}
+        }catch(e){
+            console.error('ERROR POST /cam/delete', req.body, e);
+        }
         
         res.status(200).json({status: 'success'});
     }catch(e){
