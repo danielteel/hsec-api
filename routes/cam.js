@@ -15,6 +15,33 @@ function isValidFile(str){
     return true;
 }
 
+router.post('/update', [needKnex, authenticate.bind(null, 'admin')], async (req, res)=>{
+    try{
+        const fields = [
+            'id:number',
+            'type:~hls,jpg',
+            'file:string',
+            'title:string',
+            'w:number',
+            'h:number',
+            'qual:number',
+            'fps:number',
+            'block:number:?'
+        ]
+        const [fieldCheck, id, type, file, title, w, h, qual, fps, block] = verifyFields(req.body, fields);
+        if (fieldCheck) return res.status(400).json({error: 'failed field check: '+fieldCheck});
+        
+        await req.knex('formats').update({type, file, title, w, h, qual, fps, block}).where({id});
+
+        const formats = await req.knex('formats').select('*');
+        res.json(formats);
+
+    }catch(e){
+        console.error('ERROR POST /cam/update', req.body, e);
+        return res.status(400).json({error: 'error'});
+    }
+});
+
 router.post('/add', [needKnex, authenticate.bind(null, 'admin')], async (req, res)=>{
     try{
         const fields = [
@@ -37,8 +64,8 @@ router.post('/add', [needKnex, authenticate.bind(null, 'admin')], async (req, re
         }catch(e){
             console.error('ERROR POST /cam/add', req.body, e);
         }
-
-        res.status(200).json({status:'success'});
+        const formats = await req.knex('formats').select('*');
+        res.json(formats);
     }catch(e){
         console.error('ERROR POST /cam/add', req.body, e);
         return res.status(400).json({error: 'error'});
@@ -64,7 +91,8 @@ router.post('/delete', [needKnex, authenticate.bind(null, 'admin')], async (req,
             console.error('ERROR POST /cam/delete', req.body, e);
         }
         
-        res.status(200).json({status: 'success'});
+        const formats = await req.knex('formats').select('*');
+        res.json(formats);
     }catch(e){
         console.error('ERROR POST /cam/delete', req.body, e);
         return res.status(400).json({error: 'error'});

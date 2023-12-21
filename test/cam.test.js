@@ -14,10 +14,10 @@ process.env.FFMPEG_PORT = '4003';
 process.env.CAM_DIR=path.join(__dirname,'mockfiles/');
 
 const testFormats = [
-    {type: 'jpg', file: 'il.jpg', title:'I-Lo', w: 640, h:360, qual: 12, fps: 0.66, block: null},
-    {type: 'jpg', file: 'ih.jpg', title:'I-Hi', w: 1280, h:720, qual: 11, fps: 0.66, block: null},
-    {type: 'hls', file: 'hqll.m3u8', title:'V-Lo', w: 640, h: 360, qual: 24, fps: 4, block: 2},
-    {type: 'hls', file: 'best.m3u8', title:'V-Hi', w: 1280, h: 720, qual: 24, fps: 4, block: 2}
+    {type: 'jpg', file: 'abc.jpg', title:'abc', w: 640, h:360, qual: 12, fps: 0.66, block: null},
+    {type: 'jpg', file: 'def.jpg', title:'def', w: 1280, h:720, qual: 11, fps: 0.66, block: null},
+    {type: 'hls', file: 'ghi.m3u8', title:'ghi', w: 640, h: 360, qual: 24, fps: 4, block: 2},
+    {type: 'hls', file: 'jkl.m3u8', title:'jkl', w: 1280, h: 720, qual: 24, fps: 4, block: 2}
 ];
 
 const testSuperUser =       {email: process.env.SUPER_USERNAME, password: process.env.SUPER_PASSWORD, role: 'super'};
@@ -153,11 +153,11 @@ describe("Cam", () => {
     it('POST /cam/delete deletes a format', async done => {
         const prevFormats = await knex('formats').select('*');
 
-        await post('cam/delete', {which: prevFormats[0].id}, res=>{
-            expect(res.statusCode).toEqual(200);
-        }, testAdminUser.cookies);
+        const res = await post('cam/delete', {which: prevFormats[0].id}, null, testAdminUser.cookies);
+        expect(res.statusCode).toEqual(200);
         
         const nowFormats = await knex('formats').select('*');
+        expect(res.body).toEqual(nowFormats);
 
         expect(nowFormats).toEqual(prevFormats.filter(f => f.id!==prevFormats[0].id));
 
@@ -169,11 +169,11 @@ describe("Cam", () => {
     it('POST /cam/delete deletes multiple formats', async done => {
         const prevFormats = await knex('formats').select('*');
 
-        await post('cam/delete', {which: [prevFormats[0].id, prevFormats[1].id]}, res=>{
-            expect(res.statusCode).toEqual(200);
-        }, testAdminUser.cookies);
+        const res=await post('cam/delete', {which: [prevFormats[0].id, prevFormats[1].id]}, null, testAdminUser.cookies);
+        expect(res.statusCode).toEqual(200);
         
         const nowFormats = await knex('formats').select('*');
+        expect(res.body).toEqual(nowFormats);
 
         expect(nowFormats).toEqual(prevFormats.filter(f => f.id!==prevFormats[0].id && f.id!==prevFormats[1].id));
 
@@ -202,11 +202,11 @@ describe("Cam", () => {
         const prevFormats = await knex('formats').select('*');
         const formatToAdd = {id: null, type: 'jpg', file: 'il.jpg', title:'I-Lo', w: 640, h:360, qual: 12, fps: 0.66, block: 0};
 
-        await post('cam/add', formatToAdd, res=>{
-            expect(res.statusCode).toEqual(200);
-        }, testAdminUser.cookies);
+        const res = await post('cam/add', formatToAdd, null, testAdminUser.cookies);
+        expect(res.statusCode).toEqual(200);
         
         const nowFormats = await knex('formats').select('*');
+        expect(res.body).toEqual(nowFormats);
     
         expect(nowFormats.map(r=>({...r, id: null}))).toEqual([...prevFormats, formatToAdd].map(r=>({...r, id: null})));
         expect(mockFetch).toHaveBeenCalledTimes(1);
@@ -216,18 +216,61 @@ describe("Cam", () => {
 
     it('POST /cam/add adds a hls format as a super', async done => {
         const prevFormats = await knex('formats').select('*');
-        const formatToAdd = {id: null, type: 'hls', file: 'il.m3u8', title:'I-Lo', w: 640, h:360, qual: 12, fps: 0.66, block: 3};
+        const formatToAdd = {id: null, type: 'hls', file: 'fsdgfdfg.m3u8', title:'sdfgsdfg', w: 640, h:360, qual: 12, fps: 0.66, block: 3};
 
-        await post('cam/add', formatToAdd, res=>{
-            expect(res.statusCode).toEqual(200);
-        }, testSuperUser.cookies);
+        const res = await post('cam/add', formatToAdd, null, testSuperUser.cookies);
+        expect(res.statusCode).toEqual(200);
         
         const nowFormats = await knex('formats').select('*');
-    
+        expect(res.body).toEqual(nowFormats);
+
         expect(nowFormats.map(r=>({...r, id: null}))).toEqual([...prevFormats, formatToAdd].map(r=>({...r, id: null})));
         
         expect(mockFetch).toHaveBeenCalledTimes(1);
         expect(mockFetch).toHaveBeenCalledWith('http://127.0.0.1:'+process.env.FFMPEG_PORT+'/update/'+process.env.FFMPEG_SECRET);
+        done();
+    });
+
+    it('POST /cam/update fails for unauthed users', async done => {
+        const prevFormats = await knex('formats').select('*');
+        const formatToUpdate = prevFormats[0];
+
+        formatToUpdate.title='new titleele';
+
+        await post('cam/update', formatToUpdate, (res)=>{
+            expect(res.statusCode).toEqual(401);
+        });
+
+        const unauthUsers = [testUnverifiedUser, testMemberUser, testManagerUser];
+        for (const user of unauthUsers){
+            await post('cam/update', formatToUpdate, (res)=>{
+                expect(res.statusCode).toEqual(403);
+            }, user.cookies);
+        }
+            
+        done();
+    });
+
+    it('POST /cam/update updates a format', async done => {
+        const users=[testAdminUser, testSuperUser];
+        for (let i = 0; i<users.length;i++){
+            const prevFormats = await knex('formats').select('*');
+            const formatToUpdate = prevFormats[0];
+            formatToUpdate.title='New Title'+i;
+            formatToUpdate.file='New File'+i;
+            formatToUpdate.type='jpg';
+            formatToUpdate.w=123;
+            formatToUpdate.h=321;
+            formatToUpdate.fps=4.5;
+            formatToUpdate.block=9;
+            formatToUpdate.qual=2;
+
+            const res = await post('cam/update', formatToUpdate, null, users[i].cookies);
+            expect(res.statusCode).toEqual(200);
+
+            const nowFormats = await knex('formats').select('*');
+            expect(nowFormats).toEqual(prevFormats);
+        }
         done();
     });
 });

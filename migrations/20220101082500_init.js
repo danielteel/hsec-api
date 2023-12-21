@@ -11,12 +11,12 @@ exports.up = function(knex) {
     knex.schema.createTable('formats', table => {
         table.increments('id');
         table.string('type').checkIn(['hls', 'jpg']);
-        table.string('file');
-        table.string('title');
-        table.integer('w');
-        table.integer('h');
+        table.string('file').unique().notNullable();
+        table.string('title').unique().notNullable();
+        table.integer('w').notNullable();
+        table.integer('h').notNullable();
         table.integer('qual');
-        table.float('fps');
+        table.float('fps').notNullable();
         table.float('block');
     }).then( () => {});
 
