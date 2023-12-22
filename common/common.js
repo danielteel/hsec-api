@@ -73,8 +73,13 @@ function isLegalPassword(password){
     return failFor.trim();
 }
 
+function isValidEmail(email) {
+  const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+  return emailRegex.test(email);
+}
+
 function generateVerificationCode(length=16){
     return crypto.randomBytes(length).toString("hex");
 }
 
-module.exports = {getHash, verifyFields, generateVerificationCode, isLegalPassword};
+module.exports = {getHash, verifyFields, generateVerificationCode, isLegalPassword, isValidEmail};

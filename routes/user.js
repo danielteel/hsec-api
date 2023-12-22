@@ -1,6 +1,6 @@
 const express = require('express');
 const { needKnex } = require('../database');
-const {getHash, verifyFields, generateVerificationCode, isLegalPassword} = require('../common/common');
+const {getHash, verifyFields, generateVerificationCode, isLegalPassword, isValidEmail} = require('../common/common');
 const {generateAccessToken, authenticate} = require('../common/accessToken');
 const sendMail = require('../common/sendMail');
 
@@ -19,6 +19,7 @@ router.post('/passwordchange', needKnex ,async (req, res) => {
 
         const [fieldCheck, email, newPassword, confirmCode] = verifyFields(req.body, ['email:string:*:lt', 'newPassword:string:?', 'confirmCode:string:?:lt']);
         if (fieldCheck) return res.status(400).json({error: 'failed field check: '+fieldCheck})
+        if (!isValidEmail(email)) return res.status(400).json({error: 'invalid email'});
         const newPassHash=getHash(newPassword);
 
 
@@ -83,6 +84,7 @@ router.post('/changeemail', [needKnex, authenticate.bind(null, 'unverified')], a
         if (fieldCheck) return res.status(400).json({error: 'failed field check: '+fieldCheck});
 
         if (newEmail){//passing in newEmail means you want to start the process of changing emails
+            if (!isValidEmail(newEmail)) return res.status(400).json({error: 'invalid new email'});
             await knex('user_changeemail').delete().where({user_id: req.user.id});//delete old change email record if it exists
 
             const newVerifyCode = generateVerificationCode();
@@ -173,6 +175,7 @@ router.post('/verifyemail', needKnex, async (req, res) => {
         //Verify passed in data
         const [fieldCheck, email, verifyCode, password] = verifyFields(req.body, ['email:string:*:lt', 'verifyCode:string:*:lt', 'password:string']);
         if (fieldCheck) return res.status(400).json({error: 'failed field check: '+fieldCheck});
+        if (!isValidEmail(email)) return res.status(400).json({error: 'invalid email'});
         
         const passwordCheck = isLegalPassword(password);
         if (passwordCheck) return res.status(400).json({error: 'password is not legal. '+passwordCheck});
@@ -217,6 +220,7 @@ router.post('/create', needKnex, async (req, res)=>{
 
         const [fieldCheck, email] = verifyFields(req.body, ['email:string:*:lt']);
         if (fieldCheck) return res.status(400).json({error: 'failed field check: '+fieldCheck});
+        if (!isValidEmail(email)) return res.status(400).json({error: 'invalid email'});
 
 
         //Check against existing user emails
