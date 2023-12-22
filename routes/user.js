@@ -39,7 +39,7 @@ router.post('/passwordchange', needKnex ,async (req, res) => {
             }else{
                 if (changePasswordRecord) await knex('user_changepassword').delete().where({user_id: user.id});//delete existing changepassword record
                 const confirmationCode =  generateVerificationCode();
-                await knex('user_changepassword').insert([{user_id: user.id, confirmation_code: confirmationCode}]);//add new changepassword record
+                await knex('user_changepassword').insert({user_id: user.id, confirmation_code: confirmationCode});//add new changepassword record
                 sendMail(email, "Password change", "A password reset request was sent for this email address, use the following confirmation code to reset it. "+confirmationCode);
                 
                 return res.status(200).json({status: 'check email'});
@@ -86,7 +86,7 @@ router.post('/changeemail', [needKnex, authenticate.bind(null, 'unverified')], a
             await knex('user_changeemail').delete().where({user_id: req.user.id});//delete old change email record if it exists
 
             const newVerifyCode = generateVerificationCode();
-            await knex('user_changeemail').insert([{user_id: req.user.id, new_email: newEmail, current_verification_code: newVerifyCode, new_email: newEmail, step: 'verifyOld'}]);
+            await knex('user_changeemail').insert({user_id: req.user.id, new_email: newEmail, current_verification_code: newVerifyCode, new_email: newEmail, step: 'verifyOld'});
 
             sendMail(req.user.email, 'Verify change email', 'Change email request recieved, code to verify current email before changing is '+newVerifyCode);
             return res.json({status: 'verify current email'});
@@ -171,8 +171,11 @@ router.post('/verifyemail', needKnex, async (req, res) => {
         const knex=req.knex;
 
         //Verify passed in data
-        const [fieldCheck, email, verifyCode] = verifyFields(req.body, ['email:string:*:lt', 'verifyCode:string:*:lt']);
+        const [fieldCheck, email, verifyCode, password] = verifyFields(req.body, ['email:string:*:lt', 'verifyCode:string:*:lt', 'password:string']);
         if (fieldCheck) return res.status(400).json({error: 'failed field check: '+fieldCheck});
+        
+        const passwordCheck = isLegalPassword(password);
+        if (passwordCheck) return res.status(400).json({error: 'password is not legal. '+passwordCheck});
 
         const [unverifiedUser] = await knex('unverified_users').select(['*']).where({email: email, verification_code: verifyCode});
         if (!unverifiedUser){
@@ -181,7 +184,7 @@ router.post('/verifyemail', needKnex, async (req, res) => {
             if (unverifiedUser.verification_code!==verifyCode){
                 return res.status(400).json({error: "invalid email or verification code"});
             }else{
-                const [{id: userId, email: userEmail, role: role}] = await knex('users').insert([{email, pass_hash: unverifiedUser.pass_hash, session: 0, role: 'unverified'}], 'id');
+                const [{id: userId, email: userEmail, role: role}] = await knex('users').insert({email, pass_hash: getHash(password), session: 0, role: 'unverified'}).returning('*');
                 
                 await knex('unverified_users').delete().where({email: email, verification_code: verifyCode});
                 
@@ -212,11 +215,8 @@ router.post('/create', needKnex, async (req, res)=>{
     try {
         const knex=req.knex;
 
-        const [fieldCheck, email, password] = verifyFields(req.body, ['email:string:*:lt', 'password:string']);
+        const [fieldCheck, email] = verifyFields(req.body, ['email:string:*:lt']);
         if (fieldCheck) return res.status(400).json({error: 'failed field check: '+fieldCheck});
-
-        const passwordCheck = isLegalPassword(password);
-        if (passwordCheck) return res.status(400).json({email: 'password is not legal. '+passwordCheck});
 
 
         //Check against existing user emails
@@ -230,7 +230,7 @@ router.post('/create', needKnex, async (req, res)=>{
         if (!unverifiedUser && !verifiedUser){
             //Add user if email doesnt exist
             const verifyNumber = generateVerificationCode();
-            await knex('unverified_users').insert([{email: email, pass_hash: getHash(password), verification_code: verifyNumber }]);
+            await knex('unverified_users').insert({email: email, verification_code: verifyNumber });
             await sendMail(email, 'Email verify code', 'Email verification pin '+verifyNumber);
         }else if (verifiedUser){
             //Tell user email is already registered and verified

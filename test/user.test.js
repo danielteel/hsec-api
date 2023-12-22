@@ -49,20 +49,7 @@ describe("User", () => {
         done();
     });
 
-    it('POST /user/create, returns an error if sent wrong password data type', async (done) => {
-        await post('user/create', {email: 'yolo@yolo.com', password: 123}, (res)=>{
-            expect(res.statusCode).toEqual(400);
-        });
-        done();
-    });
 
-    it("POST /user/create, password must be between 8-36 characters, >=1 digit, >=1 lowercase, >=1 uppercase, >=1 special character", async (done) => {
-        await post('user/create', {email: 'test@test.com', password: '12345'}, (res)=>{
-            expect(res.status).toBe(400);
-            expect(res.text).toContain('password is not legal');
-        });
-        done();
-    });
 
     it("POST /user/create, creates a user and sends a verification email", async (done) => {
         await post('user/create', testUserDan, (res)=>{
@@ -88,13 +75,23 @@ describe("User", () => {
         done();
     });
 
-    it('POST /user/create and /user/verifyemail, verifying email replies back with user id', async (done) => {
+    it('POST /user/create and /user/verifyemail, rejects on bad passwords and verifying email replies back with user id', async (done) => {
         const verifyMessage = await post('user/create', testUserJeff, (res)=>{
             expect(res.statusCode).toEqual(201);
 
             const emailSplit = mockNodemailer.sent[0].text.split(' ');
             const verifyCode = emailSplit[emailSplit.length-1];
-            return {email: testUserJeff.email, verifyCode: verifyCode};
+            return {email: testUserJeff.email, password: testUserJeff.password, verifyCode: verifyCode};
+        });
+
+        await post('user/verifyemail', {email: testUserJeff.email, password: 123, verifyCode: verifyMessage.verifyCode}, (res)=>{
+            expect(res.status).toBe(400);
+            expect(res.text).toContain('expected password to be of type string');
+        });
+
+        await post('user/verifyemail', {email: testUserJeff.email, password: '12345', verifyCode: verifyMessage.verifyCode}, (res)=>{
+            expect(res.status).toBe(400);
+            expect(res.text).toContain('password is not legal');
         });
 
         await post('user/verifyemail', verifyMessage, (res)=>{
