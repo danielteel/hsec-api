@@ -15,10 +15,10 @@ process.env.DOMAIN = 'website.com';
 process.env.CAM_DIR=path.join(__dirname,'mockfiles/');
 
 const testFormats = [
-    {type: 'jpg', file: 'abc.jpg', title:'abc', w: 640, h:360, qual: 12, fps: 0.66, block: null},
-    {type: 'jpg', file: 'def.jpg', title:'def', w: 1280, h:720, qual: 11, fps: 0.66, block: null},
-    {type: 'hls', file: 'ghi.m3u8', title:'ghi', w: 640, h: 360, qual: 24, fps: 4, block: 2},
-    {type: 'hls', file: 'jkl.m3u8', title:'jkl', w: 1280, h: 720, qual: 24, fps: 4, block: 2}
+    {type: 'jpg', file: 'abc.jpg', title:'abc', w: 640, h:360, qual: 12, fps: 0.66, block: null, filter:'crop=in_w/2:in_h/2:in_w/2:in_h/2'},
+    {type: 'jpg', file: 'def.jpg', title:'def', w: 1280, h:720, qual: 11, fps: 0.66, block: null, filter:null},
+    {type: 'hls', file: 'ghi.m3u8', title:'ghi', w: 640, h: 360, qual: 24, fps: 4, block: 2, filter:'crop=in_w/2:in_h/2:in_w/2:in_h/2'},
+    {type: 'hls', file: 'jkl.m3u8', title:'jkl', w: 1280, h: 720, qual: 24, fps: 4, block: 2, filter:null}
 ];
 
 const testSuperUser =       {email: process.env.SUPER_USERNAME, password: process.env.SUPER_PASSWORD, role: 'super'};
@@ -201,7 +201,7 @@ describe("Cam", () => {
 
     it('POST /cam/add adds a jpg format as an admin', async done => {
         const prevFormats = await knex('formats').select('*');
-        const formatToAdd = {id: null, type: 'jpg', file: 'il.jpg', title:'I-Lo', w: 640, h:360, qual: 12, fps: 0.66, block: 0};
+        const formatToAdd = {id: null, type: 'jpg', file: 'il.jpg', title:'I-Lo', w: 640, h:360, qual: 12, fps: 0.66, block: 0, filter: null};
 
         const res = await post('cam/add', formatToAdd, null, testAdminUser.cookies);
         expect(res.statusCode).toEqual(200);
@@ -217,7 +217,7 @@ describe("Cam", () => {
 
     it('POST /cam/add adds a hls format as a super', async done => {
         const prevFormats = await knex('formats').select('*');
-        const formatToAdd = {id: null, type: 'hls', file: 'fsdgfdfg.m3u8', title:'sdfgsdfg', w: 640, h:360, qual: 12, fps: 0.66, block: 3};
+        const formatToAdd = {id: null, type: 'hls', file: 'fsdgfdfg.m3u8', title:'sdfgsdfg', w: 640, h:360, qual: 12, fps: 0.66, block: 3, filter: '123123j'};
 
         const res = await post('cam/add', formatToAdd, null, testSuperUser.cookies);
         expect(res.statusCode).toEqual(200);

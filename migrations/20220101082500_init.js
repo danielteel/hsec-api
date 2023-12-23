@@ -17,6 +17,7 @@ exports.up = function(knex) {
         table.integer('qual');
         table.float('fps').notNullable();
         table.float('block');
+        table.string('filter');
     }).then( () => {});
 
     knex.schema.createTable('unverified_users', table => {

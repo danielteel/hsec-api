@@ -33,7 +33,7 @@ function verifyFields(obj, fields){
                 retArray[retArray.length-1]=retArray[retArray.length-1].trim();
             }
         }else if (typeof obj[name]!==type){
-            if (!(obj[name]===undefined && optional==='?')){
+            if (!((obj[name]===undefined || obj[name]===null) && optional==='?')){
                 if (type!=='any' || optional!=='?' && obj[name]===undefined){
                     failedFor+=`expected ${name} to be of type ${type}, recieved type ${typeof obj[name]}. `;
                     retArray.pop();

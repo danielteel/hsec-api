@@ -10,10 +10,10 @@ exports.seed = async function(knex) {
 
 
     const formats = [
-        {type: 'jpg', file: 'il.jpg', title:'I-Lo', w: 640, h:360, qual: 12, fps: 0.66, block: null},
-        {type: 'jpg', file: 'ih.jpg', title:'I-Hi', w: 1280, h:720, qual: 11, fps: 0.66, block: null},
-        {type: 'hls', file: 'hqll.m3u8', title:'V-Lo', w: 640, h: 360, qual: 24, fps: 4, block: 2},
-        {type: 'hls', file: 'best.m3u8', title:'V-Hi', w: 1280, h: 720, qual: 24, fps: 4, block: 2}
+        {type: 'jpg', file: 'il.jpg', title:'I-Lo', w: 640, h:360, qual: 12, fps: 0.66, block: null, filter: null},
+        {type: 'jpg', file: 'ih.jpg', title:'I-Hi', w: 1280, h:720, qual: 11, fps: 0.66, block: null, filter: null},
+        {type: 'hls', file: 'hqll.m3u8', title:'V-Lo', w: 640, h: 360, qual: 24, fps: 4, block: 2, filter: null},
+        {type: 'hls', file: 'best.m3u8', title:'V-Hi', w: 1280, h: 720, qual: 24, fps: 4, block: 2, filter: null}
     ];
     await knex('formats').insert(formats);
 

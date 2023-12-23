@@ -26,12 +26,13 @@ router.post('/update', [needKnex, authenticate.bind(null, 'admin')], async (req,
             'h:number',
             'qual:number',
             'fps:number',
-            'block:number:?'
+            'block:number:?',
+            'filter:string:?'
         ]
-        const [fieldCheck, id, type, file, title, w, h, qual, fps, block] = verifyFields(req.body, fields);
+        const [fieldCheck, id, type, file, title, w, h, qual, fps, block, filter] = verifyFields(req.body, fields);
         if (fieldCheck) return res.status(400).json({error: 'failed field check: '+fieldCheck});
         
-        await req.knex('formats').update({type, file, title, w, h, qual, fps, block}).where({id});
+        await req.knex('formats').update({type, file, title, w, h, qual, fps, block, filter}).where({id});
 
         try{
             await fetch('http://127.0.0.1:'+process.env.FFMPEG_PORT+'/update/'+process.env.FFMPEG_SECRET);
@@ -58,12 +59,13 @@ router.post('/add', [needKnex, authenticate.bind(null, 'admin')], async (req, re
             'h:number',
             'qual:number',
             'fps:number',
-            'block:number:?'
+            'block:number:?',
+            'filter:string:?'
         ]
-        const [fieldCheck, type, file, title, w, h, qual, fps, block] = verifyFields(req.body, fields);
+        const [fieldCheck, type, file, title, w, h, qual, fps, block, filter] = verifyFields(req.body, fields);
         if (fieldCheck) return res.status(400).json({error: 'failed field check: '+fieldCheck});
 
-        await req.knex('formats').insert({type, file, title, w, h, qual, fps, block});
+        await req.knex('formats').insert({type, file, title, w, h, qual, fps, block, filter});
         
         try{
             await fetch('http://127.0.0.1:'+process.env.FFMPEG_PORT+'/update/'+process.env.FFMPEG_SECRET);
