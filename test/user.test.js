@@ -51,11 +51,6 @@ describe("User", () => {
     });
 
 
-    // <Route path='/signup'><Signup/></Route>
-    // <Route path='/verifysignup/:email?/:confirmCode?'><VerifySignup/></Route>
-    // <Route path='/forgotpassword/:email?'><ForgotPassword/></Route>
-    // <Route path='/verifyforgot/:email?/:confirmCode?'><VerifyForgot/></Route>
-    // <Route path='/login'><Login/></Route>
 
     it("POST /user/create, creates a user and sends a verification email", async (done) => {
         await post('user/create', testUserDan, async (res)=>{
