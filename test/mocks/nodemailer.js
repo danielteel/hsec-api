@@ -4,6 +4,7 @@ const nodemailer = require("nodemailer");
 const mockNodemailer = {
     clear: () => {
         mockNodemailer.sent=[];
+        mockNodemailer.htmlSent=[];
     },
     sent: [],
 }

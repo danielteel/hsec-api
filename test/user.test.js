@@ -67,7 +67,7 @@ describe("User", () => {
             expect(mockNodemailer.sent[0].to).toBe(testUserDan.email);
             expect(mockNodemailer.sent[0].text).toContain('Email verification pin ');
             const [{verification_code: verifyCode}] = await knex('unverified_users').select('verification_code').where({email: testUserDan.email});
-            expect(mockNodemailer.sent[0].text).toContain('<a href="https://'+process.env.DOMAIN+'/verifysignup/'+testUserDan.email+'/'+verifyCode+'">Click to confirm email</a>');
+            expect(mockNodemailer.sent[0].html).toContain('<a href="https://'+process.env.DOMAIN+'/verifysignup/'+testUserDan.email+'/'+verifyCode+'">Click to confirm email</a>');
         });
         done();
     });    
@@ -81,7 +81,7 @@ describe("User", () => {
             expect(mockNodemailer.sent[0].to).toEqual(testUserDan.email);
             expect(mockNodemailer.sent[0].text).toContain('Resending email verification pin')
             const [{verification_code: verifyCode}] = await knex('unverified_users').select('verification_code').where({email: testUserDan.email});
-            expect(mockNodemailer.sent[0].text).toContain('<a href="https://'+process.env.DOMAIN+'/verifysignup/'+testUserDan.email+'/'+verifyCode+'">Click to confirm email</a>');
+            expect(mockNodemailer.sent[0].html).toContain('<a href="https://'+process.env.DOMAIN+'/verifysignup/'+testUserDan.email+'/'+verifyCode+'">Click to confirm email</a>');
         });
         done();
     });
@@ -125,7 +125,7 @@ describe("User", () => {
             expect(mockNodemailer.sent.length).toBe(1);
             expect(mockNodemailer.sent[0].to).toBe(testUserJeff.email);
             expect(mockNodemailer.sent[0].text).toContain('This email is already registered and verified, use forgot password form to reset password')
-            expect(mockNodemailer.sent[0].text).toContain('<a href="https://'+process.env.DOMAIN+'/forgotpassword/'+testUserJeff.email+'">Click to reset password</a>');
+            expect(mockNodemailer.sent[0].html).toContain('<a href="https://'+process.env.DOMAIN+'/forgotpassword/'+testUserJeff.email+'">Click to reset password</a>');
         });
         done();
     });
@@ -186,7 +186,7 @@ describe("User", () => {
             
             const [{current_verification_code: verifyCode}] = await knex('user_changeemail').select('current_verification_code').where({user_id: testUserJeff.id});
 
-            expect(mockNodemailer.sent[0].text).toContain('<a href="https://'+process.env.DOMAIN+'/changeemail/'+verifyCode+'">Click to confirm old email</a>');
+            expect(mockNodemailer.sent[0].html).toContain('<a href="https://'+process.env.DOMAIN+'/changeemail/'+verifyCode+'">Click to confirm old email</a>');
             return verifyCode;
         }, cookies);
 
@@ -197,7 +197,7 @@ describe("User", () => {
             expect(mockNodemailer.sent[1].to).toBe(newEmail);
             
             const [{current_verification_code: verifyCode}] = await knex('user_changeemail').select('current_verification_code').where({user_id: testUserJeff.id});
-            expect(mockNodemailer.sent[1].text).toContain('<a href="https://'+process.env.DOMAIN+'/changeemail/'+verifyCode+'">Click to confirm old email</a>');
+            expect(mockNodemailer.sent[1].html).toContain('<a href="https://'+process.env.DOMAIN+'/changeemail/'+verifyCode+'">Click to confirm old email</a>');
 
             return verifyCode;
         }, cookies);
