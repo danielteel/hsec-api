@@ -5,7 +5,6 @@ exports.up = function(knex) {
         table.string('crypto_id').unique().notNullable();
         table.string('publicKey', 1000);
         table.string('privateKey', 4000);
-        table.string('passphrase');
     }).then( () => {} );
 
     knex.schema.createTable('formats', table => {

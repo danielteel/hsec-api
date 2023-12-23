@@ -5,7 +5,6 @@ const {getHash} = require('./common');
 let accessToken = null;
 
 function getNewKeys(){
-    const passphrase = randomUUID();
     const publicKeyEncoding={
         type: 'spki',
         format: 'pem'
@@ -14,8 +13,6 @@ function getNewKeys(){
     const privateKeyEncoding={
         type: 'pkcs8',
         format: 'pem',
-        cipher: 'aes-256-cbc',
-        passphrase: passphrase
     }
 
     const keys = generateKeyPairSync('rsa', {
@@ -24,7 +21,6 @@ function getNewKeys(){
         privateKeyEncoding
     });
 
-    keys.passphrase = passphrase;
     keys.crypto_id = 'access_token';
     return keys;
 }
@@ -58,8 +54,7 @@ function generateAccessToken(data){
     return privateEncrypt(
         {
             key: accessToken.privateKey,
-            passphrase: accessToken.passphrase,
-            padding:constants.RSA_PKCS1_PADDING
+            padding: constants.RSA_PKCS1_PADDING
         },
         Buffer.from(data)
     ).toString('base64');
@@ -70,7 +65,7 @@ function decryptAccessToken(data){
         return JSON.parse(
             publicDecrypt({
                 key: accessToken.publicKey,
-                padding:constants.RSA_PKCS1_PADDING
+                padding: constants.RSA_PKCS1_PADDING
             }, Buffer.from(data, 'base64')).toString()
         );
     } catch (e) {
@@ -94,7 +89,7 @@ async function getUserFromToken(token){
     const knex=getKnex();
     const [user] = await knex('users').select('id', 'email', 'role').where({id: token.id, session: token.session});;
     if (user){
-        return user;
+        return {id: user.id, email: user.email, role: user.role};
     }
     return null;
 }
