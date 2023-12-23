@@ -4,6 +4,7 @@ const {getHash}=require('../common/common');
 //Sets automatically created super user, set these before we require('../app.js') so database isnt seeded yet
 process.env.SUPER_PASSWORD = "superpass";
 process.env.SUPER_USERNAME = "superuser";
+process.env.DOMAIN = 'website.com';
 
 const testSuperUser =       {email: process.env.SUPER_USERNAME, password: process.env.SUPER_PASSWORD, role: 'super'};
 const testUnverifiedUser =  {email:'unverified@test.com',  password: 'password',  role: 'unverified'};

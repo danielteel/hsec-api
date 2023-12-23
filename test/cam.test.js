@@ -11,6 +11,7 @@ process.env.SUPER_PASSWORD = "superpass";
 process.env.SUPER_USERNAME = "superuser";
 process.env.FFMPEG_SECRET = '1twoputitinmyshoe';
 process.env.FFMPEG_PORT = '4003';
+process.env.DOMAIN = 'website.com';
 process.env.CAM_DIR=path.join(__dirname,'mockfiles/');
 
 const testFormats = [

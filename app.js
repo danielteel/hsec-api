@@ -4,7 +4,6 @@ const helmet = require("helmet");
 const cookieparser = require("cookie-parser");
 const { connect } = require('./database');
 
-const domain = require('./config/domain');
 const { initAccessToken } = require('./common/accessToken');
 
 const app = express();
@@ -16,7 +15,7 @@ if (process.env.NODE_ENV!=='test'){
 }
 
 
-app.use(cors({ origin: ['http://' + domain], credentials: true }))
+app.use(cors({ origin: ['http://' + process.env.DOMAIN], credentials: true }))
 app.use(helmet());
 app.use(cookieparser());
 app.use(express.json());

@@ -1,5 +1,6 @@
 process.env.SUPER_PASSWORD = "superpass";
 process.env.SUPER_USERNAME = "superuser";
+process.env.DOMAIN = 'website.com';
 
 const {mockNodemailer} = require('./mocks/nodemailer');
 const {app} = require('../app.js');
@@ -50,37 +51,46 @@ describe("User", () => {
     });
 
 
+    // <Route path='/signup'><Signup/></Route>
+    // <Route path='/verifysignup/:email?/:confirmCode?'><VerifySignup/></Route>
+    // <Route path='/forgotpassword/:email?'><ForgotPassword/></Route>
+    // <Route path='/verifyforgot/:email?/:confirmCode?'><VerifyForgot/></Route>
+    // <Route path='/login'><Login/></Route>
 
     it("POST /user/create, creates a user and sends a verification email", async (done) => {
-        await post('user/create', testUserDan, (res)=>{
+        await post('user/create', testUserDan, async (res)=>{
+            
             expect(res.statusCode).toEqual(201);
             expect(res.body).toEqual({email: testUserDan.email});
-
+            
             expect(mockNodemailer.sent.length).toBe(1);
             expect(mockNodemailer.sent[0].to).toBe(testUserDan.email);
-            expect(mockNodemailer.sent[0].text).toContain('Email verification pin')
+            expect(mockNodemailer.sent[0].text).toContain('Email verification pin ');
+            const [{verification_code: verifyCode}] = await knex('unverified_users').select('verification_code').where({email: testUserDan.email});
+            expect(mockNodemailer.sent[0].text).toContain('<a href="https://'+process.env.DOMAIN+'/verifysignup/'+testUserDan.email+'/'+verifyCode+'">Click to confirm email</a>');
         });
         done();
     });    
     
     it("POST /user/create, sends an email saying this user has already registered and hasnt verified email yet", async (done) => {
-        await post('user/create', testUserDan, (res)=>{
+        await post('user/create', testUserDan, async (res)=>{
             expect(res.statusCode).toEqual(201);
             expect(res.body).toEqual({email: testUserDan.email});
 
             expect(mockNodemailer.sent.length).toBe(1);
             expect(mockNodemailer.sent[0].to).toEqual(testUserDan.email);
             expect(mockNodemailer.sent[0].text).toContain('Resending email verification pin')
+            const [{verification_code: verifyCode}] = await knex('unverified_users').select('verification_code').where({email: testUserDan.email});
+            expect(mockNodemailer.sent[0].text).toContain('<a href="https://'+process.env.DOMAIN+'/verifysignup/'+testUserDan.email+'/'+verifyCode+'">Click to confirm email</a>');
         });
         done();
     });
 
     it('POST /user/create and /user/verifyemail, rejects on bad passwords and verifying email replies back with user id', async (done) => {
-        const verifyMessage = await post('user/create', testUserJeff, (res)=>{
+        const verifyMessage = await post('user/create', testUserJeff, async (res)=>{
             expect(res.statusCode).toEqual(201);
 
-            const emailSplit = mockNodemailer.sent[0].text.split(' ');
-            const verifyCode = emailSplit[emailSplit.length-1];
+            const [{verification_code: verifyCode}] = await knex('unverified_users').select('verification_code').where({email: testUserJeff.email})
             return {email: testUserJeff.email, password: testUserJeff.password, verifyCode: verifyCode};
         });
 
@@ -114,7 +124,8 @@ describe("User", () => {
 
             expect(mockNodemailer.sent.length).toBe(1);
             expect(mockNodemailer.sent[0].to).toBe(testUserJeff.email);
-            expect(mockNodemailer.sent[0].text).toContain('This email is already registered and verified, use forgot password form to reset password.')
+            expect(mockNodemailer.sent[0].text).toContain('This email is already registered and verified, use forgot password form to reset password')
+            expect(mockNodemailer.sent[0].text).toContain('<a href="https://'+process.env.DOMAIN+'/forgotpassword/'+testUserJeff.email+'">Click to reset password</a>');
         });
         done();
     });
@@ -166,24 +177,29 @@ describe("User", () => {
             return decodeURIComponent(res.headers['set-cookie'][0].split('=')[1].split(';')[0]);
         });
             
-        let verifyCode = await post('user/changeemail', {newEmail}, (res) => {
+        let verifyCode = await post('user/changeemail', {newEmail}, async (res) => {
             expect(res.statusCode).toEqual(200);
             expect(res.body).toEqual({status: 'verify current email'});
             expect(mockNodemailer.sent.length).toBe(1);
             expect(mockNodemailer.sent[0].to).toBe(testUserJeff.email);
 
-            const emailSplit = mockNodemailer.sent[0].text.split(' ');
-            return emailSplit[emailSplit.length-1];
+            
+            const [{current_verification_code: verifyCode}] = await knex('user_changeemail').select('current_verification_code').where({user_id: testUserJeff.id});
+
+            expect(mockNodemailer.sent[0].text).toContain('<a href="https://'+process.env.DOMAIN+'/changeemail/'+verifyCode+'">Click to confirm old email</a>');
+            return verifyCode;
         }, cookies);
 
-        let newVerifyCode = await post('user/changeemail', {verifyCode}, (res) => {
+        let newVerifyCode = await post('user/changeemail', {verifyCode}, async (res) => {
             expect(res.statusCode).toEqual(200);
             expect(res.body).toEqual({status: 'verify new email'});
             expect(mockNodemailer.sent.length).toBe(2);
             expect(mockNodemailer.sent[1].to).toBe(newEmail);
+            
+            const [{current_verification_code: verifyCode}] = await knex('user_changeemail').select('current_verification_code').where({user_id: testUserJeff.id});
+            expect(mockNodemailer.sent[1].text).toContain('<a href="https://'+process.env.DOMAIN+'/changeemail/'+verifyCode+'">Click to confirm old email</a>');
 
-            const emailSplit = mockNodemailer.sent[1].text.split(' ');
-            return emailSplit[emailSplit.length-1];
+            return verifyCode;
         }, cookies);
 
         await post('user/changeemail', {verifyCode: newVerifyCode}, (res) => {
@@ -209,18 +225,18 @@ describe("User", () => {
             expect(res.body).toEqual({status: 'nochange'});
         }, cookies);   
 
-        const verifyCode = await post('user/changeemail', {newEmail: newEmail}, (res) => {
-            const emailSplit = mockNodemailer.sent[0].text.split(' ');
-            return emailSplit[emailSplit.length-1];
+        const verifyCode = await post('user/changeemail', {newEmail: newEmail}, async (res) => {
+            const [{current_verification_code: code}] = await knex('user_changeemail').select('current_verification_code').where({user_id: testUserJeff.id});
+            return code;
         }, cookies);
 
         await get('user/getchangeemail', {}, (res) => {
             expect(res.body).toEqual({status: 'verifyOld'});
         }, cookies);
 
-        const newVerifyCode = await post('user/changeemail', {verifyCode: verifyCode}, (res) => {
-            const emailSplit = mockNodemailer.sent[1].text.split(' ');
-            return emailSplit[emailSplit.length-1];
+        const newVerifyCode = await post('user/changeemail', {verifyCode: verifyCode}, async (res) => {
+            const [{current_verification_code: code}] = await knex('user_changeemail').select('current_verification_code').where({user_id: testUserJeff.id});
+            return code;
         }, cookies);
 
         await get('user/getchangeemail', {}, (res) => {

@@ -1,7 +1,6 @@
 const {randomUUID, generateKeyPairSync, constants, privateEncrypt, publicDecrypt} = require('crypto');
 const {getKnex} = require('../database');
 const {getHash} = require('./common');
-const {domain} = require('../config/domain');
 
 let accessToken = null;
 
@@ -128,12 +127,12 @@ async function authenticate(minRole, req, res, next){
                     httpOnly: true,
                     sameSite: 'lax',
                     secure: true,
-                    domain: domain
+                    domain: process.env.DOMAIN
                 });
                 res.clearCookie('hashcess', {
                     sameSite: 'lax',
                     secure: true,
-                    domain: domain
+                    domain: process.env.DOMAIN
                 });
             }
         }

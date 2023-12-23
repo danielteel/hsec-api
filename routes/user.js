@@ -4,7 +4,6 @@ const {getHash, verifyFields, generateVerificationCode, isLegalPassword, isValid
 const {generateAccessToken, authenticate} = require('../common/accessToken');
 const sendMail = require('../common/sendMail');
 
-const domain = require('../config/domain');
 
 
 const router = express.Router();
@@ -90,7 +89,7 @@ router.post('/changeemail', [needKnex, authenticate.bind(null, 'unverified')], a
             const newVerifyCode = generateVerificationCode();
             await knex('user_changeemail').insert({user_id: req.user.id, new_email: newEmail, current_verification_code: newVerifyCode, new_email: newEmail, step: 'verifyOld'});
 
-            sendMail(req.user.email, 'Verify change email', 'Change email request recieved, code to verify current email before changing is '+newVerifyCode);
+            sendMail(req.user.email, 'Verify change email', 'Change email request recieved, verification pin is '+newVerifyCode+' or <a href=\"https://'+process.env.DOMAIN+'/changeemail/'+newVerifyCode+'\">Click to confirm old email</a>');
             return res.json({status: 'verify current email'});
 
         }else{//newEmail wasnt passed, we must be on the verify steps
@@ -101,7 +100,7 @@ router.post('/changeemail', [needKnex, authenticate.bind(null, 'unverified')], a
                         const newVerifyCode = generateVerificationCode();
                         await knex('user_changeemail').update({current_verification_code: newVerifyCode, step: 'verifyNew'}).where({id: changeEmailRecord.id});
 
-                        sendMail(changeEmailRecord.new_email, 'Verify change email', 'Change email request recieved, code to verify new email before changing is '+newVerifyCode);
+                        sendMail(changeEmailRecord.new_email, 'Verify change email', 'Change email request recieved, verificatin pin is '+newVerifyCode+' or <a href=\"https://'+process.env.DOMAIN+'/changeemail/'+newVerifyCode+'\">Click to confirm old email</a>');
                         return res.json({status: 'verify new email'});
                     }else if (changeEmailRecord.step==='verifyNew'){
                         await knex('users').update({email: changeEmailRecord.new_email}).where({id: changeEmailRecord.user_id});
@@ -147,13 +146,13 @@ router.post('/login', needKnex, async (req, res) => {
                     httpOnly: true,
                     sameSite: 'lax',
                     secure: true,
-                    domain: domain,
+                    domain: process.env.DOMAIN,
                     ...maxAgeObj
                 });
                 res.cookie('hashcess', getHash(hashcess), {
                     sameSite: 'lax',
                     secure: true,
-                    domain: domain,
+                    domain: process.env.DOMAIN,
                     ...maxAgeObj
                 });
                 return res.json({id: user.id, email: user.email, role: user.role});
@@ -197,12 +196,12 @@ router.post('/verifyemail', needKnex, async (req, res) => {
                     httpOnly: true,
                     sameSite: 'lax',
                     secure: true,
-                    domain: domain
+                    domain: process.env.DOMAIN
                 });
                 res.cookie('hashcess', getHash(hashcess), {
                     sameSite: 'lax',
                     secure: true,
-                    domain: domain
+                    domain: process.env.DOMAIN
                 });
                 return res.status(200).json({id: userId, email: userEmail, role: role});
             }
@@ -235,13 +234,13 @@ router.post('/create', needKnex, async (req, res)=>{
             //Add user if email doesnt exist
             const verifyNumber = generateVerificationCode();
             await knex('unverified_users').insert({email: email, verification_code: verifyNumber });
-            await sendMail(email, 'Email verify code', 'Email verification pin '+verifyNumber);
+            await sendMail(email, 'Email verify code', 'Email verification pin '+verifyNumber+' or <a href="https://'+process.env.DOMAIN+'/verifysignup/'+email+'/'+verifyNumber+'">Click to confirm email</a>');
         }else if (verifiedUser){
             //Tell user email is already registered and verified
-            await sendMail(email, 'Email is already registered', 'This email is already registered and verified, use forgot password form to reset password.');
+            await sendMail(email, 'Email is already registered', 'This email is already registered and verified, use forgot password form to reset password. <a href="https://'+process.env.DOMAIN+'/forgotpassword/'+email+'">Click to reset password</a>');
         }else if (unverifiedUser){
             //Tell user email is already registered but unverified
-            await sendMail(email, 'Email verify code', 'Resending email verification pin '+unverifiedUser.verification_code);
+            await sendMail(email, 'Email verify code', 'Resending email verification pin '+unverifiedUser.verification_code+' or <a href="https://'+process.env.DOMAIN+'/verifysignup/'+email+'/'+unverifiedUser.verification_code+'">Click to confirm email</a>');
         }
         
         return res.status(201).json({email});
@@ -267,12 +266,12 @@ router.post('/logout', authenticate.bind(null, 'unverified'), async (req, res) =
             httpOnly: true,
             sameSite: 'lax',
             secure: true,
-            domain: domain
+            domain: process.env.DOMAIN
         });
         res.clearCookie('hashcess', {
             sameSite: 'lax',
             secure: true,
-            domain: domain
+            domain: process.env.DOMAIN
         });
         return res.status(200).json({message: 'logged out'});
     } catch (e) {
