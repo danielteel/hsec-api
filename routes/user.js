@@ -40,7 +40,7 @@ router.post('/passwordchange', needKnex ,async (req, res) => {
                 if (changePasswordRecord) await knex('user_changepassword').delete().where({user_id: user.id});//delete existing changepassword record
                 const confirmationCode =  generateVerificationCode();
                 await knex('user_changepassword').insert({user_id: user.id, confirmation_code: confirmationCode});//add new changepassword record
-                sendMail(email, "Password change", "A password reset request was sent for this email address, use the following confirmation code to reset it. "+confirmationCode,  "A password reset request was sent for this email address, use the following confirmation code to reset it. "+confirmationCode+' or <a href="https://'+process.env.DOMAIN+'/verifyforgot/'+email+'/'+confirmationCode+'>Click here</a>');
+                sendMail(email, "Password change", "A password reset request was sent for this email address, use the following confirmation code to reset it. "+confirmationCode,  "A password reset request was sent for this email address, use the following confirmation code to reset it. "+confirmationCode+' or <a href="https://'+process.env.DOMAIN+'/verifyforgot/'+email+'/'+confirmationCode+'">Click here</a>');
                 
                 return res.status(200).json({status: 'check email'});
             }
