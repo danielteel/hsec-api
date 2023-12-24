@@ -26,7 +26,10 @@ router.post('/passwordchange', needKnex ,async (req, res) => {
 
         if (user){
             const [changePasswordRecord] = await knex('user_changepassword').select('*').where({user_id: user.id});
-            if (changePasswordRecord && newPassHash && confirmCode===changePasswordRecord.confirmation_code){//User is changing password now  
+            if (changePasswordRecord && confirmCode){//User is changing password now  
+                if (confirmCode!==changePasswordRecord.confirmation_code){
+                    return res.status(400).json({error: 'incorrect confirmation code'});
+                }
                 const passwordCheck = isLegalPassword(newPassword);
                 if (passwordCheck){
                     return res.status(400).json({error: 'password is not legal. '+passwordCheck});

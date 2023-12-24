@@ -275,19 +275,15 @@ describe("User", () => {
             expect(res.text).toContain('password is not legal.');
         });
 
-        //Test that entering wrong confirm code sends a new confirm code to users email
-        const newConfirmCode = await post('user/passwordchange', {email: testUserJeff.email, confirmCode: '123', newPassword: '1qazxsw2!QAZXSW@'}, (res)=>{
-            expect(res.status).toBe(200);
-            expect(res.body).toEqual({status: 'check email'});
-            expect(mockNodemailer.sent[1].to).toBe(testUserJeff.email);
-            expect(mockNodemailer.sent[1].text).toContain('A password reset request was sent for this email address, use the following confirmation code to reset it. ');
-            const emailSplit = mockNodemailer.sent[1].text.split(' ');
-            return emailSplit[emailSplit.length-1];
+        //Test that entering wrong confirm code fails
+        await post('user/passwordchange', {email: testUserJeff.email, confirmCode: '123', newPassword: '1qazxsw2!QAZXSW@'}, (res)=>{
+            expect(res.status).toBe(400);
+            expect(res.body).toEqual({error: 'incorrect confirmation code'});
         })
 
         //Successfully change password
         const newPassword = '12qwaszx!@QWASZX';
-        await post('user/passwordchange', {email: testUserJeff.email, confirmCode: newConfirmCode, newPassword}, (res)=>{
+        await post('user/passwordchange', {email: testUserJeff.email, confirmCode: confirmCode, newPassword}, (res)=>{
             expect(res.status).toBe(201);
             expect(res.body).toEqual({status: 'success'});
         })
