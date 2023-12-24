@@ -303,6 +303,32 @@ describe("User", () => {
         done();
     });
 
+    it('POST /user/changepassword works', async (done) => {
+        let cookies;
+        const newPassword="1qaz2wsx#EDC$RFV";
+        await post('user/login', testUserJeff, (res)=>{
+            cookies=res.headers['set-cookie'];
+            expect(res.statusCode).toEqual(200);
+        }); 
+
+        await post('user/changepassword', {oldPassword: testUserJeff.password, newPassword}, res => {
+            expect(res.statusCode).toEqual(401);
+            expect(res.text).toEqual('log in');
+        });
+
+        await post('user/changepassword', {oldPassword: testUserJeff.password, newPassword}, res => {
+            testUserJeff.password=newPassword;
+            expect(res.statusCode).toEqual(200);
+        });
+
+        await post('user/login', testUserJeff, (res)=>{//Logging in with new password works
+            cookies=res.headers['set-cookie'];
+            expect(res.statusCode).toEqual(200);
+        }); 
+
+        done();
+    });
+
     it('GET /user/me', async (done)=>{
         let cookies;
         await post('user/login', testUserJeff, (res)=>{
