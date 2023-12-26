@@ -38,6 +38,61 @@ router.post('/changepassword', [needKnex, authenticate.bind(null, 'unverified')]
 })
 
 
+router.post('/forgotstart', needKnex, async (req, res) => {
+    try {
+        const [fieldCheck, email] = verifyFields(req.body, ['email:string:*:lt']);
+        if (fieldCheck) return res.status(400).json({error: 'failed field check: '+fieldCheck});
+        
+        const [user] = await req.knex('users').select('*').where({email});
+        if (user){
+            const [changePassRec] = await req.knex('user_changepassword').select('*').where({user_id: user.id});
+            if (changePassRec){
+                sendMail(
+                    email, 
+                    "Forgotten password request resent", 
+                    "Somone initiated a forgotten password change request, the confirmation code is "+changePassRec.confirmation_code,  
+                    "Somone initiated a forgotten password change request, the confirmation code is "+changePassRec.confirmation_code+' or <a href="https://'+process.env.DOMAIN+'/verifyforgot/'+email+'/'+changePassRec.confirmation_code+'">Click here</a>'
+                );
+            }else{
+                const confirmationCode =  generateVerificationCode();
+                await req.knex('user_changepassword').insert({user_id: user.id, confirmation_code: confirmationCode});
+                sendMail(
+                    email,
+                    "Forgotten password request",
+                    "Somone initiated a forgotten password change request, the confirmation code is "+confirmationCode,
+                    "Somone initiated a forgotten password change request, the confirmation code is "+confirmationCode+' or <a href="https://'+process.env.DOMAIN+'/verifyforgot/'+email+'/'+confirmationCode+'">Click here</a>'
+                );
+            }
+        }
+        return res.status(200).json({status: 'check email'});
+    } catch (e) {
+        console.error('ERROR POST /user/forgotstart', req.body, e);
+        return res.status(400).json({error: 'error'});
+    }
+});
+router.post('/forgotend', needKnex, async (req, res) => {
+    try {
+        const [fieldCheck, email, newPassword, confirmCode] = verifyFields(req.body, ['email:string:*:lt', 'newPassword:string:?', 'confirmCode:string:?:lt']);
+        if (fieldCheck) return res.status(400).json({error: 'failed field check: '+fieldCheck});
+        const passwordCheck = isLegalPassword(newPassword);
+        if (passwordCheck) return res.status(400).json({error: 'new password is not legal. '+passwordCheck});
+
+        const [user] = await req.knex('users').select('*').where({email});
+        if (user){
+            const [changePassRec] = await req.knex('user_changepassword').select('*').where({user_id: user.id, confirmation_code: confirmCode});
+            if (changePassRec){
+                await req.knex('user_changepassword').delete().where({user_id: user.id});
+                await req.knex('users').update({pass_hash: getHash(newPassword)}).where({id: user.id});
+                return res.status(200).json({status: 'success'});
+            }
+        }
+        return res.status(400).json({status: 'invalid email or confirmation code'});
+    } catch (e) {
+        console.error('ERROR POST /user/forgotend', req.body, e);
+        return res.status(400).json({error: 'error'});
+    }
+});
+
 router.post('/passwordchange', needKnex ,async (req, res) => {
     try {
         const knex=req.knex;

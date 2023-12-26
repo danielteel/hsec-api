@@ -1,5 +1,4 @@
 const {getKnex} = require('../database');
-const {mockNodemailer} = require('./mocks/nodemailer');
 
 function requestHelper(request, method, endPoint, dataToSend, callback, cookies=[]){
     endPoint=endPoint;

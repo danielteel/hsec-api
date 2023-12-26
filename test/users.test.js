@@ -6,7 +6,6 @@ const {app} = require('../app.js');
 const {closeKnex, requestHelper, waitForKnexPromise} =require('./helpers.js');
 const {getHash}=require('../common/common.js');
 const {mockNodemailer} = require('./mocks/nodemailer.js');
-const { getTestMessageUrl } = require('nodemailer');
 const request = require('supertest')(app);
 const post = requestHelper.bind(null, request, 'post');
 const get = requestHelper.bind(null, request, 'get');
@@ -129,7 +128,17 @@ describe("USers", ()=>{
         done();
     });    
 
-    it('POST /user/login sets cookie credentials', async done => {
+    it('POST /user/login fails when bad credentials', async done => {
+        await post('user/login', {email: testMemberUser.email, password: testMemberUser.password+'123123'}, res=>{
+            expect(res.statusCode).toEqual(400);
+        });
+        await post('user/login', {email: 'abc'+testMemberUser.email, password: testMemberUser.password}, res=>{
+            expect(res.statusCode).toEqual(400);
+        });
+        done();
+    });
+
+    it('POST /user/login sets credential cookies', async done => {
         await post('user/login', testMemberUser, (res)=>{
             expect(res.headers['set-cookie'][0]).not.toContain('Expires=');
             expect(res.headers['set-cookie'][1]).not.toContain('Expires=');
@@ -156,6 +165,22 @@ describe("USers", ()=>{
             expect(res.headers['set-cookie'][1]).toContain('hashcess=;');
             expect(res.statusCode).toEqual(200);
         }, testMemberUser.cookies); 
+        done();
+    });
+
+
+    it('POST /user/forgotstart and /user/forgotend', async done => {
+        await post('user/forgotstart', {email: testMemberUser.email}, async res => {
+            expect(res.statusCode).toEqual(200);
+            expect(res.body.status).toEqual('check email');
+            
+            expect(mockNodemailer.sent.length).toBe(1);
+            expect(mockNodemailer.sent[0].to).toBe(testMemberUser.email);
+            expect(mockNodemailer.sent[0].text).toContain('confirmation code is');
+            const [{confirmation_code: confirmCode}] = await knex('user_changepassword').select('confirmation_code').where({user_id: testMemberUser.id});
+            expect(mockNodemailer.sent[0].html).toContain('<a href="https://'+process.env.DOMAIN+'/verifyforgot/'+testMemberUser.email+'/'+confirmCode+'">Click here</a>');
+        });
+        //add user/forgotend
         done();
     });
 });
