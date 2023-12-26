@@ -16,20 +16,36 @@ let knex = null;
 const superUser={email: process.env.SUPER_USERNAME, password: process.env.SUPER_PASSWORD, pass_hash: getHash(process.env.SUPER_PASSWORD), role: 'super'};
 
 
+async function insertUsers(db){
+    for (const user of testUsers){
+        user.pass_hash=getHash(user.password);
+        if (user.email!==process.env.SUPER_USERNAME){
+            const [result] = await db('users').insert({email: user.email, pass_hash: user.pass_hash, role: user.role}).returning('*');
+            user.id = result.id;
+        }else{
+            const [result] = await db('users').select('id').where({email: process.env.SUPER_USERNAME});
+            user.id=result.id;
+        }
+        
+        await post('user/login', user, (res)=>{
+            user.cookies=res.headers['set-cookie'];
+        }); 
+
+    }
+    testUsers.sort((a,b)=>a.id-b.id);
+}
+
 beforeAll( async done => {
     knex = await waitForKnexPromise();
-    const [result] = await knex('users').select('id').where({email: process.env.SUPER_USERNAME});
-    superUser.id=result.id;
-
-    await post('user/login', superUser, (res)=>{
-        superUser.cookies=res.headers['set-cookie'];
-    }); 
+    await insertUsers(knex);
     done();
+
 })
 
 afterAll( () => {
     return closeKnex();
 });
+
 
 beforeEach(()=>{
     mockNodemailer.clear();
@@ -313,13 +329,18 @@ describe("User", () => {
 
         await post('user/changepassword', {oldPassword: testUserJeff.password, newPassword}, res => {
             expect(res.statusCode).toEqual(401);
-            expect(res.text).toEqual('log in');
+            expect(res.body.error).toEqual('log in');
         });
+
+        await post('user/changepassword', {oldPassword: testUserJeff.password+'a', newPassword}, res => {
+            expect(res.statusCode).toEqual(400);
+            expect(res.body.error).toEqual('probably incorrect old password');
+        }, cookies);
 
         await post('user/changepassword', {oldPassword: testUserJeff.password, newPassword}, res => {
             testUserJeff.password=newPassword;
             expect(res.statusCode).toEqual(200);
-        });
+        }, cookies);
 
         await post('user/login', testUserJeff, (res)=>{//Logging in with new password works
             cookies=res.headers['set-cookie'];

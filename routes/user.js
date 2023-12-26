@@ -5,49 +5,34 @@ const {generateAccessToken, authenticate} = require('../common/accessToken');
 const sendMail = require('../common/sendMail');
 
 
-
 const router = express.Router();
 module.exports = router;
 
 router.post('/changepassword', [needKnex, authenticate.bind(null, 'unverified')], async (req, res)=>{
     try {
-        const knex=req.knex;
-
         const [fieldCheck, oldPassword, newPassword] = verifyFields(req.body, ['oldPassword:string','newPassword:string']);
         if (fieldCheck) return res.status(400).json({error: 'failed field check: '+fieldCheck});
 
         const passwordCheck = isLegalPassword(newPassword);
-        const newPassHash=getHash(newPassword);
-
-        if (user){
-            const [changePasswordRecord] = await knex('user_changepassword').select('*').where({user_id: user.id});
-            if (changePasswordRecord && confirmCode){//User is changing password now  
-                if (confirmCode!==changePasswordRecord.confirmation_code){
-                    return res.status(400).json({error: 'incorrect confirmation code'});
-                }
-                const passwordCheck = isLegalPassword(newPassword);
-                if (passwordCheck){
-                    return res.status(400).json({error: 'password is not legal. '+passwordCheck});
-                }else{
-                    await knex('user_changepassword').delete().where({user_id: user.id});//delete existing changepassword record
-                    await knex('users').update({pass_hash: newPassHash}).where({id: user.id});//update pass_hash with new
-                    
-                    return res.status(201).json({status: 'success'});
-                }
-            }else{
-                if (changePasswordRecord) await knex('user_changepassword').delete().where({user_id: user.id});//delete existing changepassword record
-                const confirmationCode =  generateVerificationCode();
-                await knex('user_changepassword').insert({user_id: user.id, confirmation_code: confirmationCode});//add new changepassword record
-                sendMail(email, "Password change", "A password reset request was sent for this email address, use the following confirmation code to reset it. "+confirmationCode,  "A password reset request was sent for this email address, use the following confirmation code to reset it. "+confirmationCode+' or <a href="https://'+process.env.DOMAIN+'/verifyforgot/'+email+'/'+confirmationCode+'">Click here</a>');
-                
-                return res.status(200).json({status: 'check email'});
-            }
+        if (passwordCheck){
+            return res.status(400).json({error: 'new password is not legal. '+passwordCheck});
         }
 
-        //User wasnt found, but give back the same response as if there was one found so its harded to poke around finding emails
-        return res.status(200).json({status: 'check email'});
+        const newPassHash=getHash(newPassword);
+        const oldPassHash=getHash(oldPassword);
+
+        let updatedId = null ;
+        try {
+            [{id: updatedId}] = await req.knex('users').update({pass_hash: newPassHash}).where({id: req.user.id, pass_hash: oldPassHash}).returning(['id']);
+        }catch(e){
+        }
+        if (updatedId!==req.user.id || updatedId===null){
+            return res.status(400).json({error: 'probably incorrect old password'});
+        }
+        return res.json({status: 'success'});
+
     } catch (e) {
-        console.error('ERROR POST /user/passwordchange', req.body, e);
+        console.error('ERROR POST /user/changepassword', req.body, e);
         return res.status(400).json({error: 'error'});
     }
 })

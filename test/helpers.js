@@ -46,22 +46,5 @@ function closeKnex(){
 }
 
 
-async function requestCreateUser(post){
-    if (!requestCreateUser.userCount) requestCreateUser.userCount=1;
-    const testUser = {email: `user${requestCreateUser.userCount++}1sdft@email.com`, password: 'yolo2MyBo!z'};
-    return post('user/create', testUser).then(res=>{
-        if (res.statusCode!==201) throw "Error creating user for test";
-        const emailSplit = mockNodemailer.sent[mockNodemailer.sent.length-1].text.split(' ');
-        const verifyCode = emailSplit[emailSplit.length-1];
-        return post('user/verifyemail', {email: testUser.email, verifyCode: verifyCode});
-    }).then(res=>{
-        if (res.statusCode!==200) throw "Error verifying user for tests";
-        return res.body.accessToken;
-    }).catch(why=>{
-        console.error("failed in createUser", why);
-    });
-}
 
-
-
-module.exports={requestHelper, closeKnex, waitForKnex, requestCreateUser, getKnex, waitForKnexPromise};
+module.exports={requestHelper, closeKnex, waitForKnex, getKnex, waitForKnexPromise};
