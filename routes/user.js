@@ -1,7 +1,7 @@
 const express = require('express');
 const { needKnex } = require('../database');
 const {getHash, verifyFields, generateVerificationCode, isLegalPassword, isValidEmail} = require('../common/common');
-const {generateAccessToken, authenticate} = require('../common/accessToken');
+const {authenticate, setAccessCookies} = require('../common/accessToken');
 const sendMail = require('../common/sendMail');
 
 
@@ -177,25 +177,7 @@ router.post('/login', needKnex, async (req, res) => {
         const [user] = await knex('users').select('*').where({email: email, pass_hash: passHash});
         if (user){
             if (user.email===email && user.pass_hash===passHash){
-                const hashcess = generateVerificationCode();
-                const accessToken = generateAccessToken({id: user.id, session: user.session, hashcess});
-                let maxAgeObj = {};
-                if (remember){
-                    maxAgeObj={maxAge: 31536000000};
-                }
-                res.cookie('accessToken', accessToken, {
-                    httpOnly: true,
-                    sameSite: 'lax',
-                    secure: true,
-                    domain: process.env.DOMAIN,
-                    ...maxAgeObj
-                });
-                res.cookie('hashcess', getHash(hashcess), {
-                    sameSite: 'lax',
-                    secure: true,
-                    domain: process.env.DOMAIN,
-                    ...maxAgeObj
-                });
+                setAccessCookies(res, user, remember);
                 return res.json({id: user.id, email: user.email, role: user.role});
             }
         }
@@ -227,24 +209,10 @@ router.post('/verifyemail', needKnex, async (req, res) => {
             if (unverifiedUser.confirmation_code!==confirmCode){
                 return res.status(400).json({error: "invalid email or confirmation code"});
             }else{
-                const [{id: userId, email: userEmail, role: role}] = await knex('users').insert({email, pass_hash: getHash(password), session: 0, role: 'unverified'}).returning('*');
-                
+                const [user] = await knex('users').insert({email, pass_hash: getHash(password), session: 0, role: 'unverified'}).returning('*');
                 await knex('unverified_users').delete().where({email: email, confirmation_code: confirmCode});
-                
-                const hashcess = generateVerificationCode();
-                const accessToken = generateAccessToken({id: userId, session: 0, hashcess});
-                res.cookie('accessToken', accessToken, {
-                    httpOnly: true,
-                    sameSite: 'lax',
-                    secure: true,
-                    domain: process.env.DOMAIN
-                });
-                res.cookie('hashcess', getHash(hashcess), {
-                    sameSite: 'lax',
-                    secure: true,
-                    domain: process.env.DOMAIN
-                });
-                return res.status(200).json({id: userId, email: userEmail, role: role});
+                setAccessCookies(res, user);
+                return res.status(200).json({id: user.id, email: user.email, role: user.role});
             }
         }
     } catch (e) {

@@ -1,6 +1,6 @@
-const {randomUUID, generateKeyPairSync, constants, privateEncrypt, publicDecrypt} = require('crypto');
+const {generateKeyPairSync, constants, privateEncrypt, publicDecrypt} = require('crypto');
 const {getKnex} = require('../database');
-const {getHash} = require('./common');
+const {getHash, generateVerificationCode} = require('./common');
 
 let accessToken = null;
 
@@ -85,8 +85,28 @@ function isHigherRanked(a, b){
     return false;
 }
 
-function setAccessCookies(res){
+function setAccessCookies(res, user, remember=false){
+    const hashcess = generateVerificationCode();
+    const accessToken = generateAccessToken({id: user.id, session: user.session, hashcess});
 
+    let maxAgeObj = {};
+    if (remember){
+        maxAgeObj={maxAge: 31536000000};
+    }
+
+    res.cookie('accessToken', accessToken, {
+        httpOnly: true,
+        sameSite: 'lax',
+        secure: true,
+        domain: process.env.DOMAIN,
+        ...maxAgeObj
+    });
+    res.cookie('hashcess', getHash(hashcess), {
+        sameSite: 'lax',
+        secure: true,
+        domain: process.env.DOMAIN,
+        ...maxAgeObj
+    });
 }
 
 async function getUserFromToken(token){
