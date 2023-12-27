@@ -209,7 +209,7 @@ describe("Cam", () => {
         const nowFormats = await knex('formats').select('*');
         expect(res.body).toEqual(nowFormats);
     
-        expect(nowFormats.map(r=>({...r, id: null}))).toEqual([...prevFormats, formatToAdd].map(r=>({...r, id: null})));
+        expect(nowFormats.map(r=>({...r, id: null, created_at: null}))).toEqual([...prevFormats, formatToAdd].map(r=>({...r, id: null, created_at: null})));
         expect(mockFetch).toHaveBeenCalledTimes(1);
         expect(mockFetch).toHaveBeenCalledWith('http://127.0.0.1:'+process.env.FFMPEG_PORT+'/update/'+process.env.FFMPEG_SECRET);
         done();
@@ -225,7 +225,7 @@ describe("Cam", () => {
         const nowFormats = await knex('formats').select('*');
         expect(res.body).toEqual(nowFormats);
 
-        expect(nowFormats.map(r=>({...r, id: null}))).toEqual([...prevFormats, formatToAdd].map(r=>({...r, id: null})));
+        expect(nowFormats.map(r=>({...r, id: null, created_at: null}))).toEqual([...prevFormats, formatToAdd].map(r=>({...r, id: null, created_at: null})));
         
         expect(mockFetch).toHaveBeenCalledTimes(1);
         expect(mockFetch).toHaveBeenCalledWith('http://127.0.0.1:'+process.env.FFMPEG_PORT+'/update/'+process.env.FFMPEG_SECRET);

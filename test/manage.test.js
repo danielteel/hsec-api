@@ -124,24 +124,24 @@ describe("Manage", () => {
     });
 
     it('POST /manage/user/role with bad data fails', async (done) => {
-        await post('manage/user/role', {user_id: testUnverifiedUser.id, new_role: 'shclem'}, async (res)=>{
+        await post('manage/user/role', {userId: testUnverifiedUser.id, newRole: 'shclem'}, async (res)=>{
             expect(res.statusCode).toEqual(400);
         }, testManagerUser.cookies);
 
-        await post('manage/user/role', {user_id: '123', new_role: 'member'}, async (res)=>{
+        await post('manage/user/role', {userId: '123', newRole: 'member'}, async (res)=>{
             expect(res.statusCode).toEqual(400);
         }, testManagerUser.cookies);
         done();
     });
 
     it('POST /manage/user/role as manager CAN change unverified to members, and members to unverified', async (done) => {
-        await post('manage/user/role', {user_id: testUnverifiedUser.id, new_role: 'member'}, async (res)=>{
+        await post('manage/user/role', {userId: testUnverifiedUser.id, newRole: 'member'}, async (res)=>{
             expect(res.statusCode).toEqual(200);
             expect(res.body).toEqual({user_id: testUnverifiedUser.id, email: testUnverifiedUser.email, role: 'member'});
         }, testManagerUser.cookies);
 
         //Setback to original state
-        await post('manage/user/role', {user_id: testUnverifiedUser.id, new_role: 'unverified'}, async (res)=>{
+        await post('manage/user/role', {userId: testUnverifiedUser.id, newRole: 'unverified'}, async (res)=>{
             expect(res.statusCode).toEqual(200);
             expect(res.body).toEqual({user_id: testUnverifiedUser.id, email: testUnverifiedUser.email, role: 'unverified'});
         }, testManagerUser.cookies);
@@ -149,18 +149,18 @@ describe("Manage", () => {
     });
     
     it('POST /manage/user/role as admin CAN change unverified to members, members to managers, and managers to unverified', async (done) => {
-        await post('manage/user/role', {user_id: testUnverifiedUser.id, new_role: 'member'}, async (res)=>{
+        await post('manage/user/role', {userId: testUnverifiedUser.id, newRole: 'member'}, async (res)=>{
             expect(res.statusCode).toEqual(200);
             expect(res.body).toEqual({user_id: testUnverifiedUser.id, email: testUnverifiedUser.email, role: 'member'});
         }, testAdminUser.cookies);
 
-        await post('manage/user/role', {user_id: testUnverifiedUser.id, new_role: 'manager'}, async (res)=>{
+        await post('manage/user/role', {userId: testUnverifiedUser.id, newRole: 'manager'}, async (res)=>{
             expect(res.statusCode).toEqual(200);
             expect(res.body).toEqual({user_id: testUnverifiedUser.id, email: testUnverifiedUser.email, role: 'manager'});
         }, testAdminUser.cookies);
         
         //Setback to original state
-        await post('manage/user/role', {user_id: testUnverifiedUser.id, new_role: 'unverified'}, async (res)=>{
+        await post('manage/user/role', {userId: testUnverifiedUser.id, newRole: 'unverified'}, async (res)=>{
             expect(res.statusCode).toEqual(200);
             expect(res.body).toEqual({user_id: testUnverifiedUser.id, email: testUnverifiedUser.email, role: 'unverified'});
         }, testAdminUser.cookies);
@@ -168,28 +168,28 @@ describe("Manage", () => {
     });
 
     it('POST /manage/user/role as super CAN change unverified to members, members to managers, and managers to admins, admins to supers, and supers to unverified', async (done) => {
-        await post('manage/user/role', {user_id: testUnverifiedUser.id, new_role: 'member'}, async (res)=>{
+        await post('manage/user/role', {userId: testUnverifiedUser.id, newRole: 'member'}, async (res)=>{
             expect(res.statusCode).toEqual(200);
             expect(res.body).toEqual({user_id: testUnverifiedUser.id, email: testUnverifiedUser.email, role: 'member'});
         }, testSuperUser.cookies);
 
-        await post('manage/user/role', {user_id: testUnverifiedUser.id, new_role: 'manager'}, async (res)=>{
+        await post('manage/user/role', {userId: testUnverifiedUser.id, newRole: 'manager'}, async (res)=>{
             expect(res.statusCode).toEqual(200);
             expect(res.body).toEqual({user_id: testUnverifiedUser.id, email: testUnverifiedUser.email, role: 'manager'});
         }, testSuperUser.cookies);
 
-        await post('manage/user/role', {user_id: testUnverifiedUser.id, new_role: 'admin'}, async (res)=>{
+        await post('manage/user/role', {userId: testUnverifiedUser.id, newRole: 'admin'}, async (res)=>{
             expect(res.statusCode).toEqual(200);
             expect(res.body).toEqual({user_id: testUnverifiedUser.id, email: testUnverifiedUser.email, role: 'admin'});
         }, testSuperUser.cookies);
 
-        await post('manage/user/role', {user_id: testUnverifiedUser.id, new_role: 'super'}, async (res)=>{
+        await post('manage/user/role', {userId: testUnverifiedUser.id, newRole: 'super'}, async (res)=>{
             expect(res.statusCode).toEqual(200);
             expect(res.body).toEqual({user_id: testUnverifiedUser.id, email: testUnverifiedUser.email, role: 'super'});
         }, testSuperUser.cookies);
 
         //Setback to original state
-        await post('manage/user/role', {user_id: testUnverifiedUser.id, new_role: 'unverified'}, async (res)=>{
+        await post('manage/user/role', {userId: testUnverifiedUser.id, newRole: 'unverified'}, async (res)=>{
             expect(res.statusCode).toEqual(200);
             expect(res.body).toEqual({user_id: testUnverifiedUser.id, email: testUnverifiedUser.email, role: 'unverified'});
         }, testSuperUser.cookies);
@@ -197,65 +197,65 @@ describe("Manage", () => {
     });
 
     it('POST /manage/user/role returns 401/403 for non manager users', async (done)=>{
-        await post('manage/user/role', {user_id: testUnverifiedUser.id, new_role: 'member'}, async (res)=>{
+        await post('manage/user/role', {userId: testUnverifiedUser.id, newRole: 'member'}, async (res)=>{
             expect(res.statusCode).toEqual(401);
         });    
-        await post('manage/user/role', {user_id: testUnverifiedUser.id, new_role: 'member'}, async (res)=>{
+        await post('manage/user/role', {userId: testUnverifiedUser.id, newRole: 'member'}, async (res)=>{
             expect(res.statusCode).toEqual(403);
         }, testUnverifiedUser.cookies);    
-        await post('manage/user/role', {user_id: testUnverifiedUser.id, new_role: 'member'}, async (res)=>{
+        await post('manage/user/role', {userId: testUnverifiedUser.id, newRole: 'member'}, async (res)=>{
             expect(res.statusCode).toEqual(403);
         }, testMemberUser.cookies);
         done();
     });
 
     it('POST /manage/user/role as manager CANNOT change a user to manager, admin, or super', async (done) => {
-        await post('manage/user/role', {user_id: testUnverifiedUser.id, new_role: 'manager'}, async (res)=>{
+        await post('manage/user/role', {userId: testUnverifiedUser.id, newRole: 'manager'}, async (res)=>{
             expect(res.statusCode).toEqual(403);
         }, testManagerUser.cookies);
 
-        await post('manage/user/role', {user_id: testUnverifiedUser.id, new_role: 'admin'}, async (res)=>{
+        await post('manage/user/role', {userId: testUnverifiedUser.id, newRole: 'admin'}, async (res)=>{
             expect(res.statusCode).toEqual(403);
         }, testManagerUser.cookies);
 
-        await post('manage/user/role', {user_id: testUnverifiedUser.id, new_role: 'super'}, async (res)=>{
+        await post('manage/user/role', {userId: testUnverifiedUser.id, newRole: 'super'}, async (res)=>{
             expect(res.statusCode).toEqual(403);
         }, testManagerUser.cookies);
         done();
     });
 
     it('POST /manage/user/role as admin CANNOT change a user to admin, or super', async (done) => {
-        await post('manage/user/role', {user_id: testUnverifiedUser.id, new_role: 'admin'}, async (res)=>{
+        await post('manage/user/role', {userId: testUnverifiedUser.id, newRole: 'admin'}, async (res)=>{
             expect(res.statusCode).toEqual(403);
         }, testAdminUser.cookies);
 
-        await post('manage/user/role', {user_id: testUnverifiedUser.id, new_role: 'super'}, async (res)=>{
+        await post('manage/user/role', {userId: testUnverifiedUser.id, newRole: 'super'}, async (res)=>{
             expect(res.statusCode).toEqual(403);
         }, testAdminUser.cookies);
         done();
     });
 
     it('POST /manage/user/role as manager CANNOT change permissions of equal or higher ranked user', async (done) => {
-        await post('manage/user/role', {user_id: testManagerUser.id, new_role: 'member'}, async (res)=>{
+        await post('manage/user/role', {userId: testManagerUser.id, newRole: 'member'}, async (res)=>{
             expect(res.statusCode).toEqual(403);
         }, testManagerUser.cookies);
 
-        await post('manage/user/role', {user_id: testAdminUser.id, new_role: 'member'}, async (res)=>{
+        await post('manage/user/role', {userId: testAdminUser.id, newRole: 'member'}, async (res)=>{
             expect(res.statusCode).toEqual(403);
         }, testManagerUser.cookies);
 
-        await post('manage/user/role', {user_id: testSuperUser.id, new_role: 'member'}, async (res)=>{
+        await post('manage/user/role', {userId: testSuperUser.id, newRole: 'member'}, async (res)=>{
             expect(res.statusCode).toEqual(403);
         }, testManagerUser.cookies);
         done();
     });
     
     it('POST /manage/user/role as admin CANNOT change permissions of equal or higher ranked user', async (done) => {
-        await post('manage/user/role', {user_id: testAdminUser.id, new_role: 'member'}, async (res)=>{
+        await post('manage/user/role', {userId: testAdminUser.id, newRole: 'member'}, async (res)=>{
             expect(res.statusCode).toEqual(403);
         }, testAdminUser.cookies);
 
-        await post('manage/user/role', {user_id: testSuperUser.id, new_role: 'member'}, async (res)=>{
+        await post('manage/user/role', {userId: testSuperUser.id, newRole: 'member'}, async (res)=>{
             expect(res.statusCode).toEqual(403);
         }, testAdminUser.cookies);
         done();
@@ -263,14 +263,14 @@ describe("Manage", () => {
 
     it('POST /manage/user/email admins can change less ranked accounts emails', async (done) => {
         async function checkCanChangeEmail(userToChange, userMakingChange){
-            await post('manage/user/email', {user_id: userToChange.id, new_email: 'yolo@34yolo.com'}, async res => {
+            await post('manage/user/email', {userId: userToChange.id, newEmail: 'yolo@34yolo.com'}, async res => {
                 expect(res.statusCode).toEqual(200)
                 expect(res.body).toEqual({user_id: userToChange.id, email: 'yolo@34yolo.com', role: userToChange.role});
-                await post('manage/user/email', {user_id: userToChange.id, new_email: userToChange.email}, null, userMakingChange.cookies);
+                await post('manage/user/email', {userId: userToChange.id, newEmail: userToChange.email}, null, userMakingChange.cookies);
             }, userMakingChange.cookies);
         }
         async function checkCantChangeEmail(userToChange, userMakingChange){
-            await post('manage/user/email', {user_id: userToChange.id, new_email: 'yolo@34yolo.com'}, async res => {
+            await post('manage/user/email', {userId: userToChange.id, newEmail: 'yolo@34yolo.com'}, async res => {
                 expect(res.statusCode).toEqual(403)
             }, userMakingChange.cookies);
         }
@@ -284,10 +284,10 @@ describe("Manage", () => {
 
     it('POST /manage/user/email supers can change anyones emails', async (done) => {
         async function checkCanChangeEmail(userToChange, userMakingChange){
-            await post('manage/user/email', {user_id: userToChange.id, new_email: 'yolo@34yolo.com'}, async res => {
+            await post('manage/user/email', {userId: userToChange.id, newEmail: 'yolo@34yolo.com'}, async res => {
                 expect(res.statusCode).toEqual(200)
                 expect(res.body).toEqual({user_id: userToChange.id, email: 'yolo@34yolo.com', role: userToChange.role});
-                await post('manage/user/email', {user_id: userToChange.id, new_email: userToChange.email}, null, userMakingChange.cookies);
+                await post('manage/user/email', {userId: userToChange.id, newEmail: userToChange.email}, null, userMakingChange.cookies);
             }, userMakingChange.cookies);
         }
         await checkCanChangeEmail(testUnverifiedUser, testSuperUser);
@@ -300,7 +300,7 @@ describe("Manage", () => {
 
     it('POST /manage/user/email fails when not an admin or super', async (done)=>{
         async function checkCantChangeEmail(userToChange, userMakingChange){
-            await post('manage/user/email', {user_id: userToChange.id, new_email: 'yolo@34yolo.com'}, async res => {
+            await post('manage/user/email', {userId: userToChange.id, newEmail: 'yolo@34yolo.com'}, async res => {
                 expect(res.statusCode).toEqual(403)
             }, userMakingChange.cookies);
         }

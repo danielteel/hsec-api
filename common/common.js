@@ -79,7 +79,7 @@ function isValidEmail(email) {
 }
 
 function generateVerificationCode(length=16){
-    return crypto.randomBytes(length).toString("hex");
+    return crypto.randomBytes(length).toString("hex").toLowerCase();
 }
 
 module.exports = {getHash, verifyFields, generateVerificationCode, isLegalPassword, isValidEmail};

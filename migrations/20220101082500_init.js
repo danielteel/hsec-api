@@ -9,6 +9,7 @@ exports.up = function(knex) {
 
     knex.schema.createTable('formats', table => {
         table.increments('id');
+        table.timestamp('created_at').defaultTo(knex.fn.now());
         table.string('type').checkIn(['hls', 'jpg']);
         table.string('file').unique().notNullable();
         table.string('title').unique().notNullable();
@@ -25,7 +26,7 @@ exports.up = function(knex) {
         table.timestamp('created_at').defaultTo(knex.fn.now());
         table.string('email').unique().notNullable();
         table.string('pass_hash');
-        table.string('verification_code');
+        table.string('confirmation_code');
     }).then( () => {} );
 
     knex.schema.createTable('users', table => {
@@ -50,8 +51,7 @@ exports.up = function(knex) {
         table.increments('id');
         table.timestamp('created_at').defaultTo(knex.fn.now());
         table.integer('user_id').unique().notNullable();
-        table.string('step').defaultTo('verifyOld');
-        table.string('current_verification_code');
+        table.string('confirmation_code');
         table.string('new_email').notNullable();
 
         table.foreign('user_id').references('id').inTable('users');

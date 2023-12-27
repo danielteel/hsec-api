@@ -85,6 +85,10 @@ function isHigherRanked(a, b){
     return false;
 }
 
+function setAccessCookies(res){
+
+}
+
 async function getUserFromToken(token){
     const knex=getKnex();
     const [user] = await knex('users').select('id', 'email', 'role').where({id: token.id, session: token.session});;
@@ -139,4 +143,4 @@ async function authenticate(minRole, req, res, next){
 }
 
 
-module.exports = {initAccessToken, generateAccessToken, decryptAccessToken, authenticate, getUserFromToken, isHigherRanked};
+module.exports = {initAccessToken, generateAccessToken, decryptAccessToken, authenticate, getUserFromToken, isHigherRanked, setAccessCookies};

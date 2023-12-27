@@ -33,13 +33,13 @@ router.get('/users/:roleFilter?', [needKnex, authenticate.bind(null, 'manager')]
 
 router.post('/user/role', [needKnex, authenticate.bind(null, 'manager')], async (req, res) => {
     try {
-        const [fieldCheck, newRole, user_id] = verifyFields(req.body, ['new_role:~super,admin,manager,member,unverified', 'user_id:number']);
+        const [fieldCheck, newRole, userId] = verifyFields(req.body, ['newRole:~super,admin,manager,member,unverified', 'userId:number']);
         if (fieldCheck) return res.status(400).json({error: 'failed field check: '+fieldCheck});
 
-        const [{role: oldRole}] = await req.knex('users').select('role').where({id: user_id});
+        const [{role: oldRole}] = await req.knex('users').select('role').where({id: userId});
 
         if ((isHigherRanked(req.user.role, oldRole) && isHigherRanked(req.user.role, newRole)) || req.user.role==='super'){
-            const [updatedUser] = await req.knex('users').update({role: newRole}).where({id: user_id}).returning(['id as user_id', 'email', 'role']);
+            const [updatedUser] = await req.knex('users').update({role: newRole}).where({id: userId}).returning(['id as user_id', 'email', 'role']);
             return res.status(200).json(updatedUser);
         }
         return res.status(403).json({error: 'insufficent privileges'});
@@ -52,15 +52,15 @@ router.post('/user/role', [needKnex, authenticate.bind(null, 'manager')], async 
 
 router.post('/user/email', [needKnex, authenticate.bind(null, 'admin')], async (req, res)=>{
     try {
-        const [fieldCheck, newEmail, user_id] = verifyFields(req.body, ['new_email:string:*:lt', 'user_id:number']);
+        const [fieldCheck, newEmail, userId] = verifyFields(req.body, ['newEmail:string:*:lt', 'userId:number']);
         if (fieldCheck) return res.status(400).json({error: 'failed field check: '+fieldCheck});
 
-        const [{role}] = await req.knex('users').select('role').where({id: user_id});
+        const [{role}] = await req.knex('users').select('role').where({id: userId});
    
         if (req.user.role==='admin' && (role==='super' || role==='admin')){
                 return res.status(403).json({error: 'insufficent privileges'});
         }
-        const [updatedUser] = await req.knex('users').update({email: newEmail}).where({id: user_id}).returning(['id as user_id', 'email', 'role']);
+        const [updatedUser] = await req.knex('users').update({email: newEmail}).where({id: userId}).returning(['id as user_id', 'email', 'role']);
         return res.status(200).json(updatedUser);
 
     }catch(e){

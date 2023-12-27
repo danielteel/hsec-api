@@ -74,7 +74,7 @@ describe("USers", ()=>{
         done();
     });
 
-    it("POST /user/create creates a user and sends a verification email", async (done) => {
+    it("POST /user/create creates a user and sends a confirmation email", async (done) => {
         const newUser = {email: 'testtest@gmail.com'};
         await post('user/create', newUser, async (res)=>{
             
@@ -83,39 +83,39 @@ describe("USers", ()=>{
             
             expect(mockNodemailer.sent.length).toBe(1);
             expect(mockNodemailer.sent[0].to).toBe(newUser.email);
-            expect(mockNodemailer.sent[0].text).toContain('Email verification pin ');
-            const [{verification_code: verifyCode}] = await knex('unverified_users').select('verification_code').where({email: newUser.email});
-            expect(mockNodemailer.sent[0].html).toContain('<a href="https://'+process.env.DOMAIN+'/verifysignup/'+newUser.email+'/'+verifyCode+'">Click to confirm email</a>');
+            expect(mockNodemailer.sent[0].text).toContain('Email confirmation code ');
+            const [{confirmation_code: confirmCode}] = await knex('unverified_users').select('confirmation_code').where({email: newUser.email});
+            expect(mockNodemailer.sent[0].html).toContain('<a href="https://'+process.env.DOMAIN+'/verifysignup/'+newUser.email+'/'+confirmCode+'">Click to confirm email</a>');
         });
         done();
     });    
 
-    it("POST /user/create verifying create account by email", async (done) => {
+    it("POST /user/create confirming create account by email", async (done) => {
         const newUser = {email: 'testtest@gmail.com'};
-        const verificationCode = await post('user/create', newUser, async (res)=>{
-            const [{verification_code: code}] = await knex('unverified_users').select('verification_code').where({email: newUser.email});
+        const confirmCode = await post('user/create', newUser, async (res)=>{
+            const [{confirmation_code: code}] = await knex('unverified_users').select('confirmation_code').where({email: newUser.email});
             expect(code).not.toBeNull();
             return code;
         });
 
-        //Wrong verification code
-        await post('user/verifyemail', {verifyCode: '132kl3kjl1nm', email: newUser.email, password: '1qaz!QAZ'}, async (res) => {
+        //Wrong confirmation code
+        await post('user/verifyemail', {confirmCode: '132kl3kjl1nm', email: newUser.email, password: '1qaz!QAZ'}, async (res) => {
             expect(res.statusCode).toEqual(400);
         });
 
         
         //Illegal password
-        await post('user/verifyemail', {verifyCode: verificationCode, email: newUser.email, password: '1qaz!QA'}, async (res) => {
+        await post('user/verifyemail', {confirmCode, email: newUser.email, password: '1qaz!QA'}, async (res) => {
             expect(res.statusCode).toEqual(400);
         });
 
         //Illegal email
-        await post('user/verifyemail', {verifyCode: verificationCode, email: 'asdlisdfksldjf', password: '1qaz!QA'}, async (res) => {
+        await post('user/verifyemail', {confirmCode, email: 'asdlisdfksldjf', password: '1qaz!QA'}, async (res) => {
             expect(res.statusCode).toEqual(400);
         });
 
         //Actually verify
-        await post('user/verifyemail', {verifyCode: verificationCode, email: newUser.email, password: '1qaz!QAZ'}, async (res) => {
+        await post('user/verifyemail', {confirmCode, email: newUser.email, password: '1qaz!QAZ'}, async (res) => {
             const accessToken = decodeURIComponent(res.headers['set-cookie'][0].split('=')[1].split(';')[0]);
             const hashcess = decodeURIComponent(res.headers['set-cookie'][1].split('=')[1].split(';')[0]);
             const decryptedAccessToken = decryptAccessToken(accessToken);
@@ -168,9 +168,20 @@ describe("USers", ()=>{
         done();
     });
 
+    
+    it('GET /user/me returns details of user from cookies', async (done)=>{
+        for (const user of testUsers){
+            await get('user/me', {}, (res)=>{
+                expect(res.statusCode).toEqual(200);
+                expect(res.body).toEqual({id: user.id, email: user.email, role: user.role});
+            }, user.cookies);
+        }
+        done();
+    });
+
 
     it('POST /user/forgotstart and /user/forgotend', async done => {
-        await post('user/forgotstart', {email: testMemberUser.email}, async res => {
+        const confirmCode = await post('user/forgotstart', {email: testMemberUser.email}, async res => {
             expect(res.statusCode).toEqual(200);
             expect(res.body.status).toEqual('check email');
             
@@ -179,8 +190,112 @@ describe("USers", ()=>{
             expect(mockNodemailer.sent[0].text).toContain('confirmation code is');
             const [{confirmation_code: confirmCode}] = await knex('user_changepassword').select('confirmation_code').where({user_id: testMemberUser.id});
             expect(mockNodemailer.sent[0].html).toContain('<a href="https://'+process.env.DOMAIN+'/verifyforgot/'+testMemberUser.email+'/'+confirmCode+'">Click here</a>');
+            return confirmCode;
         });
-        //add user/forgotend
+
+        const newPassword = testMemberUser.password+'123!@#AbC';
+
+        //Invalid email
+        await post('user/forgotend', {email: testMemberUser.email+'a', confirmCode: confirmCode, newPassword}, res=>{
+            expect(res.statusCode).toEqual(400);
+        });
+        //Invalid confirm code
+        await post('user/forgotend', {email: testMemberUser.email, confirmCode: confirmCode+'a', newPassword}, res=>{
+            expect(res.statusCode).toEqual(400);
+        });
+        //Illegal password
+        await post('user/forgotend', {email: testMemberUser.email, confirmCode: confirmCode, newPassword: '1qaz4$'}, res=>{
+            expect(res.statusCode).toEqual(400);
+        });
+
+
+        await post('user/forgotend', {email: testMemberUser.email, confirmCode: confirmCode, newPassword}, res=>{
+            expect(res.statusCode).toEqual(200);
+            testMemberUser.password=newPassword;
+            testMemberUser.pass_hash=getHash(newPassword);
+        });
+        done();
+    });
+
+    it('POST /user/changemailstart and /user/changemailend', async done => {
+        const newEmail = 'newemail@newemail.com';
+
+
+        await get('user/changemailstatus', {}, async res=>{
+            expect(res.statusCode).toEqual(401);
+        });
+
+        await get('user/changemailstatus', {}, async res=>{
+            expect(res.statusCode).toEqual(200);
+            expect(res.body.status).toEqual('none');
+        }, testMemberUser.cookies);
+        
+        //not logged in
+        await post('user/changemailstart', {newEmail, password: testMemberUser.password}, async res => {
+            expect(res.statusCode).toEqual(401);
+        });    
+
+        //wrong password
+        await post('user/changemailstart', {newEmail, password: testMemberUser.password+'a'}, async res => {
+            expect(res.statusCode).toEqual(400);
+        }, testMemberUser.cookies);
+
+        //invalid email password
+        await post('user/changemailstart', {newEmail: '1@2.', password: testMemberUser.password+'a'}, async res => {
+            expect(res.statusCode).toEqual(400);
+        }, testMemberUser.cookies);
+
+        const confirmCode = await post('user/changemailstart', {newEmail, password: testMemberUser.password}, async res => {
+            expect(res.statusCode).toEqual(200);
+            
+            expect(mockNodemailer.sent.length).toBe(1);
+            expect(mockNodemailer.sent[0].to).toBe(newEmail);
+            expect(mockNodemailer.sent[0].text).toContain('confirmation code is');
+            const [{confirmation_code: confirmCode}] = await knex('user_changeemail').select('confirmation_code').where({user_id: testMemberUser.id});
+            expect(mockNodemailer.sent[0].html).toContain('<a href="https://'+process.env.DOMAIN+'/changemailend/'+testMemberUser.email+'/'+confirmCode+'">Click here</a>');
+            return confirmCode;
+        }, testMemberUser.cookies);
+
+
+        await get('user/changemailstatus', {}, async res=>{
+            expect(res.statusCode).toEqual(200);
+            expect(res.body.status).toEqual('confirm');
+            expect(res.body.newEmail).toEqual(newEmail);
+        }, testMemberUser.cookies);
+
+        //not logged in
+        await post('user/changemailend', {confirmCode}, async res => {
+            expect(res.statusCode).toEqual(401)
+        });
+
+        //invalid confirm code
+        await post('user/changemailend', {confirmCode: confirmCode+'a'}, async res => {
+            expect(res.statusCode).toEqual(400)
+        }, testMemberUser.cookies);
+        //Different user
+        await post('user/changemailend', {confirmCode: confirmCode+'a'}, async res => {
+            expect(res.statusCode).toEqual(400)
+        }, testAdminUser.cookies);
+
+
+        await post('user/changemailend', {confirmCode}, async res => {
+            expect(res.statusCode).toEqual(200);
+    
+            const [{id: userId}] = await knex('users').select('id').where({email: newEmail});
+
+            expect(testMemberUser.id).toEqual(userId);
+            
+            const [record] = await knex('user_changeemail').select('*').where({user_id: testMemberUser.id});
+            expect(record).toEqual(undefined);
+            testMemberUser.email=newEmail;
+
+        }, testMemberUser.cookies);
+        
+        await get('user/changemailstatus', {}, async res=>{
+            expect(res.statusCode).toEqual(200);
+            expect(res.body.status).toEqual('none');
+        }, testMemberUser.cookies);
+        
         done();
     });
 });
