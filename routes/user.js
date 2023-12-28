@@ -209,7 +209,7 @@ router.post('/verifyemail', needKnex, async (req, res) => {
             if (unverifiedUser.confirmation_code!==confirmCode){
                 return res.status(400).json({error: "invalid email or confirmation code"});
             }else{
-                const [user] = await knex('users').insert({email, pass_hash: getHash(password), session: 0, role: 'unverified'}).returning('*');
+                const [user] = await knex('users').insert({email, pass_hash: getHash(password), role: 'unverified'}).returning('*');
                 await knex('unverified_users').delete().where({email: email, confirmation_code: confirmCode});
                 setAccessCookies(res, user);
                 return res.status(200).json({id: user.id, email: user.email, role: user.role});
@@ -285,6 +285,35 @@ router.post('/logout', authenticate.bind(null, 'unverified'), async (req, res) =
         return res.status(200).json({message: 'logged out'});
     } catch (e) {
         console.error('ERROR POST /user/logout', e);
+        return res.status(400).json({error: 'error'});
+    }
+});
+
+router.post('/logouteverywhere', [needKnex, authenticate.bind(null, 'unverified')], async (req, res) => {
+    try {
+        const [{id: fetchedId, session: oldSession}] = await req.knex('users').select('id', 'session').where({id: req.user.id});
+        if (!fetchedId) return res.status(400).json({error: 'error'});
+
+        let newSession = generateVerificationCode(16);
+        while (newSession===oldSession){
+            newSession = generateVerificationCode(16);
+        }
+        await req.knex('users').update({session: newSession}).where({id: req.user.id});
+
+        res.clearCookie('accessToken', {
+            httpOnly: true,
+            sameSite: 'lax',
+            secure: true,
+            domain: process.env.DOMAIN
+        });
+        res.clearCookie('hashcess', {
+            sameSite: 'lax',
+            secure: true,
+            domain: process.env.DOMAIN
+        });
+        return res.status(200).json({message: 'logged out everywhere'});
+    } catch (e) {
+        console.error('ERROR POST /user/logouteverywhere', e);
         return res.status(400).json({error: 'error'});
     }
 });

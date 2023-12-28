@@ -298,4 +298,26 @@ describe("USers", ()=>{
         
         done();
     });
+
+    it('POST /user/logouteverywhere changes the session in the users record', async done => {
+        
+        await get('user/me', {}, async res=>{
+            expect(res.statusCode).toEqual(200);
+        }, testMemberUser.cookies);
+
+        const [{session: oldSession}] = await knex('users').select('*').where({id: testMemberUser.id});
+  
+        await post('user/logouteverywhere', {}, async res=>{
+            expect(res.statusCode).toEqual(200);
+        }, testMemberUser.cookies);
+
+        await get('user/me', {}, async res=>{
+            expect(res.statusCode).toEqual(401);
+        }, testMemberUser.cookies);
+        
+        const [{session: newSession}] = await knex('users').select('*').where({id: testMemberUser.id});
+
+        expect(oldSession).not.toEqual(newSession);
+        done();
+    });
 });
