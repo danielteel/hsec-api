@@ -3,6 +3,7 @@ const cors = require('cors');
 const helmet = require("helmet");
 const cookieparser = require("cookie-parser");
 const { connect } = require('./database');
+const {startupDeviceServer} = require('./deviceServer.js');
 
 const { initAccessToken } = require('./common/accessToken');
 
