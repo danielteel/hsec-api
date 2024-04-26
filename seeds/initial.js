@@ -18,7 +18,15 @@ exports.seed = async function(knex) {
     await knex('formats').insert(formats);
 
 
-    const superPass = process.env.SUPER_PASSWORD || generateVerificationCode(8);
-    const superUser = process.env.SUPER_USERNAME || ('super_'+generateVerificationCode(2));
+    let superPass;
+    let superUser;
+    if (process.env.FORCE_SQLITE){
+        superUser = 'superuser';
+        superPass = 'superpass';
+        console.log(`SQLite mode active: super user is ${superPass} and password is ${superPass}`);
+    }else{
+        superUser = process.env.SUPER_USERNAME || ('super_'+generateVerificationCode(2));
+        superPass = process.env.SUPER_PASSWORD || generateVerificationCode(8);
+    }
     await knex('users').insert({email: superUser, pass_hash: getHash(superPass), role: 'super'});
 };

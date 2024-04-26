@@ -1,3 +1,5 @@
+const apiPort = process.env.API_PORT || 4001;
+
 for (const a of process.argv) {
         if (a.toLowerCase().trim() === '-sqlite') process.env.FORCE_SQLITE=true;
 }
@@ -5,6 +7,6 @@ for (const a of process.argv) {
 const {app} = require('./app.js');
 
 
-app.listen(process.env.API_PORT, () => {
-        console.log('listening on '+process.env.API_PORT)
+app.listen(apiPort, () => {
+        console.log('listening on '+apiPort)
 });
