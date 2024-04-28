@@ -1,5 +1,11 @@
 let activeDevices = [];
 
+function logDevices(){
+    console.log(activeDevices.map((v)=>v.name));
+    setTimeout(logDevices, 5000);
+}
+logDevices();
+
 let server = null;
 
 const devicePort = process.env.API_DEV_PORT || 4004;
@@ -26,14 +32,16 @@ function startupDeviceServer(){
     });
 
     server.on('connection', function(socket) {
+        socket.setTimeout(20000);
         console.log('Device connected');
-        activeDevices.push(socket);
+        let thisDevice = {name: 'unknown', cachedImage: null, socket};
+        activeDevices.push(thisDevice);
         
         let packet={magic1: null, magic2: null, type: null, length_hi: null, length_mid: null, length_lo: null, length: null, payload: null, payloadWriteIndex: 0};
 
         const removeFromList = () => {
             activeDevices=activeDevices.filter( v => {
-                if (v===socket) return false;
+                if (v.socket===socket) return false;
                 return true;
             });
         }
@@ -72,7 +80,14 @@ function startupDeviceServer(){
                         packet.payloadWriteIndex+=howFar;
                         if (packet.payloadWriteIndex>=packet.length){
                             //Process complete packet here
-                            console.log('packet', packet.payload.toString());
+                            if (packet.type===0){
+                                thisDevice.name=packet.payload.toString();
+                                console.log('device renamed to', thisDevice.name);
+                            }else if (packet.type===1){
+                                thisDevice.cachedImage=packet.payload;
+                            }else{
+                                console.log('unknown packet type from device', packet.type);
+                            }
                             packet={magic1: null, magic2: null, type: null, length_hi: null, length_mid: null, length_lo: null, length: null, payload: null, payloadWriteIndex: 0};
                         }
                         i+=howFar-1;
@@ -85,6 +100,7 @@ function startupDeviceServer(){
         });
 
         socket.on('timeout', ()=>{
+            socket.destroy();
             console.log('Device timeout');
             removeFromList();
         })
