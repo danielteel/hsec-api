@@ -23,6 +23,7 @@ app.use(helmet());
 app.use(cookieparser());
 app.use(express.json());
 
+app.use('/devices', require('./routes/devices'));
 app.use('/user', require('./routes/user'));
 app.use('/cam', require('./routes/cam'));
 app.use('/manage', require('./routes/manage'));

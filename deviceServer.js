@@ -1,3 +1,6 @@
+const {encrypt, decrypt} = require('./encro');
+const textDecoder = new TextDecoder;
+const textEncoder = new TextEncoder;
 let activeDevices = [];
 
 function logDevices(){
@@ -81,12 +84,13 @@ function startupDeviceServer(){
                         if (packet.payloadWriteIndex>=packet.length){
                             //Process complete packet here
                             if (packet.type===0){
-                                thisDevice.name=packet.payload.toString();
+                                thisDevice.name=textDecoder.decode(decrypt(packet.payload, "4c97d02ae05b748dcb67234065ddf4b8f832a17826cf44a4f90a91349da78cba"));
                                 console.log('device renamed to', thisDevice.name);
                             }else if (packet.type===1){
-                                thisDevice.cachedImage=packet.payload;
+                                thisDevice.cachedImage=Buffer.from(decrypt(packet.payload, "4c97d02ae05b748dcb67234065ddf4b8f832a17826cf44a4f90a91349da78cba"));
+                                console.log('device sent an image', thisDevice.name);
                             }else{
-                                console.log('unknown packet type from device', packet.type);
+                                console.log('unknown packet type from device', thisDevice.name, packet.type);
                             }
                             packet={magic1: null, magic2: null, type: null, length_hi: null, length_mid: null, length_lo: null, length: null, payload: null, payloadWriteIndex: 0};
                         }
