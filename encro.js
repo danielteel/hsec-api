@@ -17,17 +17,18 @@ function frame(bytes){
         throw 'frame expects data to be Uint8Array';
     }
     let paddingLength=4;
-    const modLength = (4+2+bytes.length)%16
+    const modLength = (4+3+bytes.length)%16
     if (modLength){
         paddingLength=16-modLength%16 + 4;
     }
-    const framed = new Uint8Array(paddingLength+2+bytes.length);
-    framed[0]=bytes.length >> 8;
-    framed[1]=bytes.length & 0xFF;
+    const framed = new Uint8Array(paddingLength+3+bytes.length);
+    framed[0]=(bytes.length >> 16)&0xFF;
+    framed[1]=(bytes.length >> 8)&0xFF;
+    framed[2]=bytes.length & 0xFF;
     for (let i=0;i<paddingLength;i++){
-        framed[2+i]=Math.floor(Math.random()*256);//Need more secure random number solution
+        framed[3+i]=Math.floor(Math.random()*256);//Need more secure random number solution
     }
-    framed.set(bytes, 2+paddingLength);
+    framed.set(bytes, 3+paddingLength);
     return framed;
 }
 
@@ -48,7 +49,7 @@ function encrypt(data, keyString){
     }
 
     let buffer = frame(data);
-    if (buffer.length>0xFFFF) throw 'data needs to be less than 0xFFF0 in size';
+    if (buffer.length>0xFFFFFF) throw 'data needs to be less than 0xFFFFF0 in size';
 
     for (let k=0;k<key.length;k++){
         for (let i=0;i<buffer.length-7;i+=1){
@@ -140,7 +141,7 @@ function decrypt(data, keyString){
         }
     }
 
-    const len = buffer[0]<<8|buffer[1];
+    const len = buffer[0]<<16|buffer[1]<<8|buffer[2];
     return buffer.subarray(buffer.length-len);
 }
 
