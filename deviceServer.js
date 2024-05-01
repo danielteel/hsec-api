@@ -25,6 +25,10 @@ struct packet{
 }
 */
 
+function uint32ToUint8(uint32array){
+    return new Uint8Array([(uint32array[0]>>24)&0xFF, (uint32array[0]>>16)&0xFF, (uint32array[0]>>8)&0xFF, uint32array[0]&0xFF]);
+}
+
 function startupDeviceServer(){
     if (server) return;
     
@@ -37,8 +41,10 @@ function startupDeviceServer(){
     server.on('connection', function(socket) {
         socket.setTimeout(20000);
         console.log('Device connected');
-        let thisDevice = {name: 'unknown', cachedImage: null, socket};
+        let thisDevice = {name: 'unknown', cachedImage: null, handshakeNumber: Uint32Array.from([Math.random()*4294967295]), socket};
         activeDevices.push(thisDevice);
+        
+        socket.write(uint32ToUint8(thisDevice.handshakeNumber));
         
         let packet={magic1: null, magic2: null, type: null, length_hi: null, length_mid: null, length_lo: null, length: null, payload: null, payloadWriteIndex: 0};
 
