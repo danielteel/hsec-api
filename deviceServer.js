@@ -29,6 +29,129 @@ function uint32ToUint8(uint32array){
     return new Uint8Array([(uint32array[0]>>24)&0xFF, (uint32array[0]>>16)&0xFF, (uint32array[0]>>8)&0xFF, uint32array[0]&0xFF]);
 }
 
+function removeFromActiveDevices(device){
+    activeDevices=activeDevices.filter( v => {
+        if (v.socket===device.socket) return false;
+        return true;
+    });
+}
+
+function getActiveDevices(){
+    return activeDevices;
+}
+
+
+class PacketIO {
+    constructor(socket, key, onCompletePacket, onError){
+        this.onCompletePacket=onCompletePacket;
+        this.onError=onError;
+        this.errorOccured=false;
+        this.key=key;
+        this.reset();
+        this.socket=socket;
+        this.deviceHandshakeNumber=null;
+        this.handshakeNumber=Uint32Array.from([Math.random()*4294967295]);
+
+        this.sendInitialHandshake();
+
+        socket.on('data', onData);
+    }
+
+    reset = () => {
+        this.magic1=null;
+        this.magic2=null;
+        this.type=null;
+        this.length_hi=null;
+        this.length_mid=null;
+        this.length_lo=null;
+        this.payload=null;
+        this.payloadWriteIndex=0;
+    }
+
+    sendInitialHandshake = () => {
+        this.socket.write(new Uint8Array([73, 31, 0, 0, 0, 4]));
+        this.socket.write(uint32ToUint8(this.handshakeNumber));
+    }
+
+    sendPacket = (type, data) => {
+        if (data.length>(0xFFFFFB)){
+            this.onError('cant send a message bigger than 0xFFFFFB');
+            return;
+        }
+        const len = new Uint32Array([data.length+4]);
+        const lenBytes=uint32ToUint8(len);
+
+        this.socket.write(new Uint8Array([73, 31, type, lenBytes[1], lenBytes[2], lenBytes[3]]));
+        this.socket.write(uint32ToUint8(this.handshakeNumber));
+        this.socket.write(Buffer.from(data));
+
+        this.handshakeNumber++
+    }
+
+    onData = (buffer) => {
+        if (this.errorOccured) return;
+    
+        for (let i=0;i<buffer.length;i++){
+            const byte=buffer[i];
+            if (this.magic1===null){
+                this.magic1=byte;
+            }else if (this.magic2===null){
+                this.magic2=byte;
+                if (this.magic1!=73 || this.magic2!=31){
+                    this.onError('bad magic bytes, restart connection');
+                    this.errorOccured=true;
+                    return;
+                }
+            }else if (this.type===null){
+                this.type=byte;
+                if (this.type!==0 && this.deviceHandshakeNumber===null){
+                    this.onError('handshake needs to happen first, restart connection');
+                    this.errorOccured=true;
+                    return;
+                }
+            }else if (this.length_hi===null){
+                this.length_hi=byte;
+            }else if (this.length_mid===null){
+                this.length_mid=byte;
+            }else if (this.length_lo===null){
+                this.length_lo=byte;
+                this.length=this.length_lo+(this.length_mid<<8)+(this.length_hi<<16);
+
+                if (this.deviceHandshakeNumber===null && this.length!=4){
+                    this.onError('handshake packet needs to be 4 bytes');
+                    this.errorOccured=true;
+                    return;
+                }
+
+                this.payload = Buffer.alloc(this.length);
+                this.payloadWriteIndex=0;
+            }else{
+                const howFar = Math.min(this.length, buffer.length-i);
+                buffer.copy(this.payload, this.payloadWriteIndex, i, howFar+i);
+                this.payloadWriteIndex+=howFar;
+                if (this.payloadWriteIndex>=this.length){
+                    //Process complete packet here
+                    const decrypted = decrypt(this.payload, this.key);
+                    const recvdHandshake = decrypted[0]<<24 | decrypted[1]<<16 | decrypted[2]<<8 | decrypted[3];
+                    if (this.deviceHandshakeNumber===null){
+                        this.deviceHandshakeNumber=recvdHandshake;
+                    }else{
+                        if (recvdHandshake!=this.deviceHandshakeNumber[0]){
+                            this.onError('incorrect handshake number, restart connection');
+                            this.errorOccured=true;
+                            return;
+                        }
+                        this.deviceHandshakeNumber[0]++;
+                        this.onCompletePacket(this.type, Buffer.from(decrypted, 4));
+                    }
+                    this.reset();
+                }
+                i+=howFar-1;
+            }
+        }
+    }
+}
+
 function startupDeviceServer(){
     if (server) return;
     
@@ -39,85 +162,42 @@ function startupDeviceServer(){
     });
 
     server.on('connection', function(socket) {
-        socket.setTimeout(20000);
         console.log('Device connected');
+
+        socket.setTimeout(20000);
+
         let thisDevice = {name: 'unknown', cachedImage: null, handshakeNumber: Uint32Array.from([Math.random()*4294967295]), socket};
         activeDevices.push(thisDevice);
-        
-        socket.write(uint32ToUint8(thisDevice.handshakeNumber));
-        
-        let packet={magic1: null, magic2: null, type: null, length_hi: null, length_mid: null, length_lo: null, length: null, payload: null, payloadWriteIndex: 0};
 
-        const removeFromList = () => {
-            activeDevices=activeDevices.filter( v => {
-                if (v.socket===socket) return false;
-                return true;
-            });
+
+        const onCompletePacket = (type, data) => {
+            if (type===0){
+                thisDevice.name=textDecoder.decode(data);
+                console.log('device renamed to', thisDevice.name);
+            }else if (type===1){
+                thisDevice.cachedImage=Buffer.from(data);
+                console.log('device sent an image', thisDevice.name);
+            }else{
+                console.log('unknown packet type from device', thisDevice.name, type);
+            }
+        }
+        const onError = (msg) => {
+            console.log('PacketIO error', thisDevice.name, msg);
+            socket.destroy();
+            removeFromActiveDevices(thisDevice);
         }
 
-        function processData(buffer){
-                for (let i=0;i<buffer.length;i++){
-                    const byte=buffer[i];
-                    if (packet.magic1===null){
-                        packet.magic1=byte;
-                        if (packet.magic1!=73){
-                            console.log('incorrect magic 1 byte, disconnecting device');
-                            removeFromList();
-                            socket.destroy();
-                        }
-                    }else if (packet.magic2===null){
-                        packet.magic2=byte;
-                        if (packet.magic2!=31){
-                            console.log('incorrect magic 2 byte, disconnecting device');
-                            removeFromList();
-                            socket.destroy();
-                        }
-                    }else if (packet.type===null){
-                        packet.type=byte;
-                    }else if (packet.length_hi===null){
-                        packet.length_hi=byte;
-                    }else if (packet.length_mid===null){
-                        packet.length_mid=byte;
-                    }else if (packet.length_lo===null){
-                        packet.length_lo=byte;
-                        packet.length=packet.length_lo+(packet.length_mid<<8)+(packet.length_hi<<16);
-                        packet.payload = Buffer.alloc(packet.length);
-                        packet.payloadWriteIndex=0;
-                    }else{
-                        const howFar = Math.min(packet.length, buffer.length-i);
-                        buffer.copy(packet.payload, packet.payloadWriteIndex, i, howFar+i);
-                        packet.payloadWriteIndex+=howFar;
-                        if (packet.payloadWriteIndex>=packet.length){
-                            //Process complete packet here
-                            if (packet.type===0){
-                                thisDevice.name=textDecoder.decode(decrypt(packet.payload, "4c97d02ae05b748dcb67234065ddf4b8f832a17826cf44a4f90a91349da78cba"));
-                                console.log('device renamed to', thisDevice.name);
-                            }else if (packet.type===1){
-                                thisDevice.cachedImage=Buffer.from(decrypt(packet.payload, "4c97d02ae05b748dcb67234065ddf4b8f832a17826cf44a4f90a91349da78cba"));
-                                console.log('device sent an image', thisDevice.name);
-                            }else{
-                                console.log('unknown packet type from device', thisDevice.name, packet.type);
-                            }
-                            packet={magic1: null, magic2: null, type: null, length_hi: null, length_mid: null, length_lo: null, length: null, payload: null, payloadWriteIndex: 0};
-                        }
-                        i+=howFar-1;
-                    }
-                }
-        }
-
-        socket.on('data', (chunk) => {
-            processData(chunk);
-        });
-
+        const packetio = new PacketIO(socket, "4c97d02ae05b748dcb67234065ddf4b8f832a17826cf44a4f90a91349da78cba", onCompletePacket, onError);
+        
         socket.on('timeout', ()=>{
             socket.destroy();
             console.log('Device timeout');
-            removeFromList();
+            removeFromActiveDevices(thisDevice);
         })
 
         socket.on('end', function() {
             console.log('Device disconnected');
-            removeFromList();
+            removeFromActiveDevices(thisDevice);
         });
 
         socket.on('error', function(err) {
@@ -129,4 +209,4 @@ function startupDeviceServer(){
 
 
 
-module.exports = {startupDeviceServer, activeDevices};
+module.exports = {startupDeviceServer, getActiveDevices};
