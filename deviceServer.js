@@ -2,6 +2,7 @@ const {encrypt, decrypt} = require('./encro');
 const textDecoder = new TextDecoder;
 const textEncoder = new TextEncoder;
 let activeDevices = [];
+let deviceCounter=0;
 
 function logDevices(){
     console.log(activeDevices.map((v)=>v.name));
@@ -49,12 +50,28 @@ class PacketIO {
         this.key=key;
         this.reset();
         this.socket=socket;
+        this.name='Device '+deviceCounter++;
         this.deviceHandshakeNumber=null;
         this.handshakeNumber=Uint32Array.from([Math.random()*4294967295]);
 
         this.sendInitialHandshake();
 
-        socket.on('data', onData);
+        socket.on('data', this.onData);
+
+        socket.on('timeout', ()=>{
+            socket.destroy();
+            console.log('Device timeout');
+            removeFromActiveDevices(thisDevice);
+            onError('device timeout');
+        })
+
+        socket.on('end', function() {
+            removeFromActiveDevices(thisDevice);
+        });
+
+        socket.on('error', function(err) {
+            console.log(`Device error: ${err}`);
+        });
     }
 
     reset = () => {
@@ -188,21 +205,6 @@ function startupDeviceServer(){
         }
 
         const packetio = new PacketIO(socket, "4c97d02ae05b748dcb67234065ddf4b8f832a17826cf44a4f90a91349da78cba", onCompletePacket, onError);
-        
-        socket.on('timeout', ()=>{
-            socket.destroy();
-            console.log('Device timeout');
-            removeFromActiveDevices(thisDevice);
-        })
-
-        socket.on('end', function() {
-            console.log('Device disconnected');
-            removeFromActiveDevices(thisDevice);
-        });
-
-        socket.on('error', function(err) {
-            console.log(`Device error: ${err}`);
-        });
     });
 }
 
