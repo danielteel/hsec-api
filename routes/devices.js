@@ -4,7 +4,7 @@ const { needKnex } = require('../database');
 const {getHash, verifyFields, generateVerificationCode, isLegalPassword} = require('../common/common');
 const fetch = require('node-fetch');
 
-const {getActiveDevices}=require('../deviceServer');
+const {getImageLibrary}=require('../deviceServer');
 
 const router = express.Router();
 module.exports = router;
@@ -12,10 +12,10 @@ module.exports = router;
 
 router.get('/garage', (req, res) => {
     try {
-        const activeDevices=getActiveDevices();
+        const imageLibrary=getImageLibrary();
         res.setHeader('Content-Type', 'image/jpeg');
         res.setHeader('Cache-Control', 'no-cache, no-transform, no-store, must-revalidate');
-        res.send(activeDevices[0].cachedImage);
+        res.send(imageLibrary['Garage']);
     } catch (e){
         console.error('ERROR /cam/:file', req.body, e);
         res.status(400).json({error: 'error'});
