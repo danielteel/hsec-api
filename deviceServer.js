@@ -195,7 +195,7 @@ function startupDeviceServer(){
 
         const onCompletePacket = (device, type, data) => {
             if (type===2){
-                imageLibrary[device.name]=Buffer.from(data);
+                imageLibrary[device.name]=data;
                 console.log('device sent an image', device.name);
             }else{
                 console.log('unknown packet type from device', device.name, type);

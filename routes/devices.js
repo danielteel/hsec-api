@@ -15,7 +15,9 @@ router.get('/garage', (req, res) => {
         const imageLibrary=getImageLibrary();
         res.setHeader('Content-Type', 'image/jpeg');
         res.setHeader('Cache-Control', 'no-cache, no-transform, no-store, must-revalidate');
-        res.send(imageLibrary['Garage']);
+        //res.send(imageLibrary['Garage']);
+        res.write(imageLibrary['Garage']);
+        res.end();
     } catch (e){
         console.error('ERROR /cam/:file', req.body, e);
         res.status(400).json({error: 'error'});

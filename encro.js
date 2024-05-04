@@ -1,3 +1,4 @@
+const crypto = require('crypto');
 
 function leftRotate32(num,  places){
     return ((num << places) | (num >>> (32 - places))) & 0xFFFFFFFF;
@@ -26,7 +27,7 @@ function frame(bytes){
     framed[1]=(bytes.length >> 8)&0xFF;
     framed[2]=bytes.length & 0xFF;
     for (let i=0;i<paddingLength;i++){
-        framed[3+i]=Math.floor(Math.random()*256);//Need more secure random number solution
+        framed[3+i]=crypto.randomInt(255);//Need more secure random number solution
     }
     framed.set(bytes, 3+paddingLength);
     return framed;
