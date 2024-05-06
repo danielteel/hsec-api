@@ -59,10 +59,10 @@ class DeviceIO {
 
         socket.setTimeout(20000);
         socket.on('data', this.onData);
-        socket.on('end', function() {
+        socket.on('end', () => {
             this.constructor.removeDevice(this);
         });        
-        socket.on('timeout', ()=>{
+        socket.on('timeout', () => {
             socket.destroy();
             this.constructor.removeDevice(this);
             this.onError(this, this.name+' timed out, closing connection');
@@ -98,16 +98,17 @@ class DeviceIO {
             this.onError(this, this.name+' cant send a message bigger than 0xFFFF00');
             return;
         }
-        const allTheData = Buffer.concat(uint32ToUint8(this.handshakeNumber), Buffer.from(data));
+        console.log("Sending packet with handshake ", this.handshakeNumber[0]);
+        const allTheData = Buffer.concat([uint32ToUint8(this.handshakeNumber), Buffer.from(data)]);
+  
         const encryptedData = encrypt(allTheData, this.key);
-
         const lenBytes=uint32ToUint8(new Uint32Array([encryptedData.length]));
 
         this.socket.write(new Uint8Array([73, 31, type, lenBytes[1], lenBytes[2], lenBytes[3]]));
-        this.socket.write(uint32ToUint8(this.handshakeNumber));
-        this.socket.write(Buffer.from(data));
+        this.socket.write(encryptedData);
+        console.log(encryptedData);
 
-        this.handshakeNumber++
+        this.handshakeNumber[0]++;
     }
 
     onData = (buffer) => {    
@@ -197,6 +198,7 @@ function startupDeviceServer(){
             if (type===2){
                 imageLibrary[device.name]=data;
                 console.log('device sent an image', device.name);
+                device.sendPacket(3, 'open or close the door, whatever you want to do.');
             }else{
                 console.log('unknown packet type from device', device.name, type);
             }
