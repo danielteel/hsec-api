@@ -13,27 +13,29 @@ function rightRotate8(num,  places){
     return ((num >>> places) | (num << (8 - places))) & 0xFF;
 }
 
-function frame(bytes){
+function frame(handshake, bytes){
     if (!(bytes instanceof Uint8Array)){
         throw 'frame expects data to be Uint8Array';
     }
     let paddingLength=4;
-    const modLength = (4+3+bytes.length)%16
+    const handshakeLength=4;
+    const sizeLength=4;
+    const modLength = (paddingLength+sizeLength+handshakeLength+bytes.length)%16
     if (modLength){
         paddingLength=16-modLength%16 + 4;
     }
-    const framed = new Uint8Array(paddingLength+3+bytes.length);
-    framed[0]=(bytes.length >> 16)&0xFF;
-    framed[1]=(bytes.length >> 8)&0xFF;
-    framed[2]=bytes.length & 0xFF;
+    const framed = new Uint8Array(paddingLength+sizeLength+handshakeLength+bytes.length);
+    const framedView=new DataView(framed.buffer);
+    framedView.setUint32(0, bytes.length+handshakeLength);
     for (let i=0;i<paddingLength;i++){
-        framed[3+i]=crypto.randomInt(255);//Need more secure random number solution
+        framed[sizeLength+i]=crypto.randomInt(255);//Need more secure random number solution
     }
-    framed.set(bytes, 3+paddingLength);
+    framedView.setUint32(sizeLength, handshake);
+    if (bytes && bytes.length) framed.set(bytes, sizeLength+handshakeLength+paddingLength);
     return framed;
 }
 
-function encrypt(data, keyString){
+function encrypt(handshake, data, keyString){
     let key=[];
     if (typeof keyString==='string'){
         if (keyString.length!=64){
@@ -49,7 +51,7 @@ function encrypt(data, keyString){
         key=keyString;
     }
 
-    let buffer = frame(data);
+    let buffer = frame(handshake, data);
     if (buffer.length>0xFFFFFF) throw 'data needs to be less than 0xFFFFF0 in size';
 
     for (let k=0;k<key.length;k++){
@@ -142,8 +144,10 @@ function decrypt(data, keyString){
         }
     }
 
-    const len = buffer[0]<<16|buffer[1]<<8|buffer[2];
-    return buffer.subarray(buffer.length-len);
+    const bufferView = new DataView(buffer.buffer);
+    const dataLength = bufferView.getUint32(0)-4;
+    const handshake=bufferView.getUint32(buffer.length-dataLength-4);
+    return {handshake, data: buffer.subarray(buffer.length-dataLength)};
 }
 
 module.exports={decrypt, encrypt};

@@ -1,4 +1,5 @@
 const {encrypt, decrypt} = require('./encro');
+const crypto = require('crypto');
 const textDecoder = new TextDecoder;
 // const textEncoder = new TextEncoder;
 
@@ -54,7 +55,7 @@ class DeviceIO {
         this.name='Device '+this.constructor.deviceCounter++;
         this.deviceHandshakeNumber=null;
 
-        this.handshakeNumber=Uint32Array.from([Math.random()*4294967295]);
+        this.handshakeNumber=Uint32Array.from([crypto.randomInt(4294967295)]);
         this.sendInitialHandshake();
 
         socket.setTimeout(20000);
@@ -86,25 +87,26 @@ class DeviceIO {
     }
 
     sendInitialHandshake = () => {
-        const encryptedData = encrypt(uint32ToUint8(this.handshakeNumber), this.key);
-        const lenBytes=uint32ToUint8(new Uint32Array([encryptedData.length]));
+        const encryptedData = encrypt(this.handshakeNumber[0], null, this.key);
 
-        this.socket.write(new Uint8Array([73, 31, 0, lenBytes[1], lenBytes[2], lenBytes[3]]));
+        const header=new Uint8Array([73, 31, 0, 0, 0, 0]);
+        (new DataView(header)).setUint32(2, encryptedData.length);
+        
+        this.socket.write(header);
         this.socket.write(encryptedData);
     }
 
-    sendPacket = (type, data) => {
-        if (data.length>(0xFFFF00)){
-            this.onError(this, this.name+' cant send a message bigger than 0xFFFF00');
+    sendPacket = (data) => {
+        if (data.length>(0xFFFFFF00)){
+            this.onError(this, this.name+' cant send a message bigger than 0xFFFFFF00');
             return;
         }
         console.log("Sending packet with handshake ", this.handshakeNumber[0]);
-        const allTheData = Buffer.concat([uint32ToUint8(this.handshakeNumber), Buffer.from(data)]);
   
-        const encryptedData = encrypt(allTheData, this.key);
-        const lenBytes=uint32ToUint8(new Uint32Array([encryptedData.length]));
-
-        this.socket.write(new Uint8Array([73, 31, type, lenBytes[1], lenBytes[2], lenBytes[3]]));
+        const encryptedData = encrypt(this.handshakeNumber[0], allTheData, this.key);
+        const header=new Uint8Array([73, 31, 0, 0, 0, 0]);
+        (new DataView(header)).setUint32(2, encryptedData.length);
+        this.socket.write(header);
         this.socket.write(encryptedData);
         console.log(encryptedData);
 
