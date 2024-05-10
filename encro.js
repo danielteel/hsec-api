@@ -14,8 +14,11 @@ function rightRotate8(num,  places){
 }
 
 function frame(handshake, bytes){
-    if (!(bytes instanceof Uint8Array)){
+    if (bytes!=null && !(bytes instanceof Uint8Array)){
         throw 'frame expects data to be Uint8Array';
+    }
+    if (bytes===null){
+        bytes=new Uint8Array();
     }
     let paddingLength=4;
     const handshakeLength=4;
@@ -26,11 +29,11 @@ function frame(handshake, bytes){
     }
     const framed = new Uint8Array(paddingLength+sizeLength+handshakeLength+bytes.length);
     const framedView=new DataView(framed.buffer);
-    framedView.setUint32(0, bytes.length+handshakeLength);
+    framedView.setUint32(0, bytes.length+handshakeLength, true);
     for (let i=0;i<paddingLength;i++){
         framed[sizeLength+i]=crypto.randomInt(255);//Need more secure random number solution
     }
-    framedView.setUint32(sizeLength, handshake);
+    framedView.setUint32(sizeLength+paddingLength, handshake, true);
     if (bytes && bytes.length) framed.set(bytes, sizeLength+handshakeLength+paddingLength);
     return framed;
 }
@@ -145,8 +148,8 @@ function decrypt(data, keyString){
     }
 
     const bufferView = new DataView(buffer.buffer);
-    const dataLength = bufferView.getUint32(0)-4;
-    const handshake=bufferView.getUint32(buffer.length-dataLength-4);
+    const dataLength = bufferView.getUint32(0, true)-4;
+    const handshake=bufferView.getUint32(buffer.length-dataLength-4, true);
     return {handshake, data: buffer.subarray(buffer.length-dataLength)};
 }
 

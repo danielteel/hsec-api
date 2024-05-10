@@ -7,23 +7,6 @@ let server = null;
 
 const devicePort = process.env.API_DEV_PORT || 4004;
 
-/*
-struct packet{
-    uint_8t magic1 = 73
-    uint_8t magic2 = 31
-    uint_8t messageType;
-    uint_8t length_hi;//Size of payload hi being the highest value byte, mid being the middle, and lo being the lowest value byte
-    uint_8t length_mid;
-    uint_8t length_lo;
-    uint_8t* payload
-}
-*/
-
-function uint32ToUint8(uint32array){
-    return new Uint8Array([(uint32array[0]>>24)&0xFF, (uint32array[0]>>16)&0xFF, (uint32array[0]>>8)&0xFF, uint32array[0]&0xFF]);
-}
-
-
 
 class DeviceIO {
     static devices = [];
@@ -78,10 +61,10 @@ class DeviceIO {
     resetPacketData = () => {
         this.magic1=null;
         this.magic2=null;
-        this.type=null;
-        this.length_hi=null;
-        this.length_mid=null;
-        this.length_lo=null;
+        this.length1=null;
+        this.length2=null;
+        this.length3=null;
+        this.length4=null;
         this.payload=null;
         this.payloadWriteIndex=0;
     }
@@ -90,10 +73,12 @@ class DeviceIO {
         const encryptedData = encrypt(this.handshakeNumber[0], null, this.key);
 
         const header=new Uint8Array([73, 31, 0, 0, 0, 0]);
-        (new DataView(header)).setUint32(2, encryptedData.length);
-        
+        (new DataView(header.buffer)).setUint32(2, encryptedData.length, true);
+        console.log(header, this.handshakeNumber[0]);
         this.socket.write(header);
         this.socket.write(encryptedData);
+        //this.sendPacket(new Uint8Array([2, 0]));
+       // this.sendPacket(new Uint8Array([1, 0]));
     }
 
     sendPacket = (data) => {
@@ -103,9 +88,9 @@ class DeviceIO {
         }
         console.log("Sending packet with handshake ", this.handshakeNumber[0]);
   
-        const encryptedData = encrypt(this.handshakeNumber[0], allTheData, this.key);
+        const encryptedData = encrypt(this.handshakeNumber[0], data, this.key);
         const header=new Uint8Array([73, 31, 0, 0, 0, 0]);
-        (new DataView(header)).setUint32(2, encryptedData.length);
+        (new DataView(header.buffer)).setUint32(2, encryptedData.length, true);
         this.socket.write(header);
         this.socket.write(encryptedData);
         console.log(encryptedData);
@@ -126,21 +111,18 @@ class DeviceIO {
                     this.onError(this, this.name+' bad magic bytes, closing connection');
                     return;
                 }
-            }else if (this.type===null){
-                this.type=byte;
-                if (this.type!==0 && this.deviceHandshakeNumber===null){
-                    this.socket.destroy();
-                    this.constructor.removeDevice(this);
-                    this.onError(this, this.name+' handshake needs to happen first, closing connection');
-                    return;
-                }
-            }else if (this.length_hi===null){
-                this.length_hi=byte;
-            }else if (this.length_mid===null){
-                this.length_mid=byte;
-            }else if (this.length_lo===null){
-                this.length_lo=byte;
-                this.length=this.length_lo+(this.length_mid<<8)+(this.length_hi<<16);
+            }else if (this.length1===null){
+                this.length1=byte;
+            }else if (this.length2===null){
+                this.length2=byte;
+            }else if (this.length3===null){
+                this.length3=byte;
+            }else if (this.length4===null){
+                this.length4=byte;
+
+                const temp = new Uint8Array([this.length1, this.length2, this.length3, this.length4]);
+                const tempView = new DataView(temp.buffer);
+                this.length=tempView.getUint32(0, true);
 
                 this.payload = Buffer.alloc(this.length);
                 this.payloadWriteIndex=0;
@@ -151,23 +133,17 @@ class DeviceIO {
                 if (this.payloadWriteIndex>=this.length){
                     //Process complete packet here
                     console.log('packet recieved');
-                    const decrypted = decrypt(this.payload, this.key);
-                    const recvdHandshake = new Uint32Array([decrypted[0]<<24 | decrypted[1]<<16 | decrypted[2]<<8 | decrypted[3]]);
-                    if (this.deviceHandshakeNumber===null){
-                        this.deviceHandshakeNumber=recvdHandshake;
+                    const {data: decrypted, handshake: recvdHandshake} = decrypt(this.payload, this.key);
+                    if (this.deviceHandshakeNumber===null && decrypted.length===0){
+                        this.deviceHandshakeNumber=new Uint32Array([recvdHandshake]);
+                    }else if (recvdHandshake!=this.deviceHandshakeNumber[0]){
+                        this.socket.destroy();
+                        this.constructor.removeDevice(this);
+                        this.onError(this, this.name+' incorrect handshake number, closing connection, recvd: '+recvdHandshake[0]+' expected: '+this.deviceHandshakeNumber[0]);
+                        return;
                     }else{
-                        if (recvdHandshake[0]!=this.deviceHandshakeNumber[0]){
-                            this.socket.destroy();
-                            this.constructor.removeDevice(this);
-                            this.onError(this, this.name+' incorrect handshake number, closing connection, recvd: '+recvdHandshake[0]+' expected: '+this.deviceHandshakeNumber[0]);
-                            return;
-                        }
                         this.deviceHandshakeNumber[0]++;
-                        if (this.type===1){
-                            this.name=textDecoder.decode(decrypted.subarray(4));
-                        }else{
-                            this.onCompletePacket(this, this.type, decrypted.subarray(4));
-                        }
+                        this.onCompletePacket(this, decrypted);
                     }
                     this.resetPacketData();
                 }
@@ -196,13 +172,13 @@ function startupDeviceServer(){
     server.on('connection', function(socket) {
         console.log('Device connected');
 
-        const onCompletePacket = (device, type, data) => {
-            if (type===2){
+        const onCompletePacket = (device, data) => {
+            if (data[0]===0xFF && data[1]===0xD8){
                 imageLibrary[device.name]=data;
                 console.log('device sent an image', device.name);
-                device.sendPacket(3, 'open or close the door, whatever you want to do.');
+                //device.sendPacket(new Uint8Array([3]));
             }else{
-                console.log('unknown packet type from device', device.name, type);
+                device.name=textDecoder.decode(data);
             }
         }
 
