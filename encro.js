@@ -9,9 +9,6 @@ function rightRotate32(num,  places){
 function leftRotate8(num,  places){
     return ((num << places) | (num >>> (8 - places))) & 0xFF;
 }
-function rightRotate8(num,  places){
-    return ((num >>> places) | (num << (8 - places))) & 0xFF;
-}
 
 function frame(handshake, bytes){
     if (bytes!=null && !(bytes instanceof Uint8Array)){
@@ -19,6 +16,9 @@ function frame(handshake, bytes){
     }
     if (bytes===null){
         bytes=new Uint8Array();
+    }
+    if (bytes.length>0x0FFFF0){
+        throw 'data needs to be less than 0x0FFFF0 bytes';
     }
     let paddingLength=4;
     const handshakeLength=4;
@@ -31,7 +31,7 @@ function frame(handshake, bytes){
     const framedView=new DataView(framed.buffer);
     framedView.setUint32(0, bytes.length+handshakeLength, true);
     for (let i=0;i<paddingLength;i++){
-        framed[sizeLength+i]=crypto.randomInt(255);//Need more secure random number solution
+        framed[sizeLength+i]=crypto.randomInt(255);
     }
     framedView.setUint32(sizeLength+paddingLength, handshake, true);
     if (bytes && bytes.length) framed.set(bytes, sizeLength+handshakeLength+paddingLength);
@@ -55,10 +55,9 @@ function encrypt(handshake, data, keyString){
     }
 
     let buffer = frame(handshake, data);
-    if (buffer.length>0xFFFFFF) throw 'data needs to be less than 0xFFFFF0 in size';
 
     for (let k=0;k<key.length;k++){
-        for (let i=0;i<buffer.length-7;i+=1){
+        for (let i=0;i<buffer.length-7;i++){
 
             let b4=leftRotate32(buffer[i+0] | buffer[i+2]<<8 | buffer[i+4]<<16 | buffer[i+6]<<24, key[k]%31);
             buffer[i+0] = b4 & 0xFF;
@@ -149,6 +148,9 @@ function decrypt(data, keyString){
 
     const bufferView = new DataView(buffer.buffer);
     const dataLength = bufferView.getUint32(0, true)-4;
+    if (dataLength>0x0FFFF0 || dataLength>data.length-4){
+        throw 'data length is bigger than it should be';
+    }
     const handshake=bufferView.getUint32(buffer.length-dataLength-4, true);
     return {handshake, data: buffer.subarray(buffer.length-dataLength)};
 }

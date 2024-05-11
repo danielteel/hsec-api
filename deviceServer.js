@@ -77,13 +77,11 @@ class DeviceIO {
         console.log(header, this.handshakeNumber[0]);
         this.socket.write(header);
         this.socket.write(encryptedData);
-        //this.sendPacket(new Uint8Array([2, 0]));
-       // this.sendPacket(new Uint8Array([1, 0]));
     }
 
     sendPacket = (data) => {
-        if (data.length>(0xFFFFFF00)){
-            this.onError(this, this.name+' cant send a message bigger than 0xFFFFFF00');
+        if (data.length>(0x0FFFF0)){
+            this.onError(this, this.name+' cant send a message bigger than 0x0FFFF0');
             return;
         }
         console.log("Sending packet with handshake ", this.handshakeNumber[0]);
