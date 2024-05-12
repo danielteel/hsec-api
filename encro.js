@@ -15,7 +15,7 @@ function frame(handshake, bytes){
         throw 'frame expects data to be Uint8Array';
     }
     if (bytes===null){
-        bytes=new Uint8Array();
+        bytes={length: 0};
     }
     if (bytes.length>0x0FFFF0){
         throw 'data needs to be less than 0x0FFFF0 bytes';
