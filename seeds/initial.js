@@ -5,6 +5,7 @@ exports.seed = async function(knex) {
     await knex('user_changepassword').del();
     await knex('users').del();
     await knex('unverified_users').del();
+    await knex('devices').del();
     await knex('formats').del();
     await knex('crypto').del();
 
