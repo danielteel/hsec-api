@@ -17,6 +17,11 @@ class DeviceIO {
     }
 
     static removeDevice(device){
+        try{
+            if (device.socket){
+                device.socket.destroy();
+            }
+        }catch{}
         this.devices=this.devices.filter( v => {
             if (v===device) return false;
             return true;
@@ -38,8 +43,11 @@ class DeviceIO {
         this.name='Device '+this.constructor.deviceCounter++;
         this.deviceHandshakeNumber=null;
 
+        this.socket.setNoDelay();
+
         this.handshakeNumber=Uint32Array.from([crypto.randomInt(4294967295)]);
         this.sendInitialHandshake();
+        
 
         socket.setTimeout(20000);
         socket.on('data', this.onData);
@@ -91,7 +99,7 @@ class DeviceIO {
         (new DataView(header.buffer)).setUint32(2, encryptedData.length, true);
         this.socket.write(header);
         this.socket.write(encryptedData);
-        console.log(encryptedData);
+
 
         this.handshakeNumber[0]++;
     }
@@ -121,6 +129,12 @@ class DeviceIO {
                 const temp = new Uint8Array([this.length1, this.length2, this.length3, this.length4]);
                 const tempView = new DataView(temp.buffer);
                 this.length=tempView.getUint32(0, true);
+
+                if (this.length>0x0FFFFF){
+                    this.socket.destroy();
+                    this.constructor.removeDevice(this);
+                    this.onError(this, this.name+' device sent packet larger than 0x0FFFFF');
+                }
 
                 this.payload = Buffer.alloc(this.length);
                 this.payloadWriteIndex=0;
@@ -174,7 +188,6 @@ function startupDeviceServer(){
             if (data[0]===0xFF && data[1]===0xD8){
                 imageLibrary[device.name]=data;
                 console.log('device sent an image', device.name);
-                //device.sendPacket(new Uint8Array([3]));
             }else{
                 device.name=textDecoder.decode(data);
             }

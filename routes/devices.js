@@ -23,3 +23,13 @@ router.get('/garage', (req, res) => {
         res.status(400).json({error: 'error'});
     }
 });
+
+router.get('/details', [needKnex, authenticate.bind(null, 'member')], async (req, res) => {
+    try {
+        const formats = await req.knex('formats').select('*');
+        res.json(formats);
+    }catch(e){
+        console.error('ERROR GET /cam/details', req.body, e);
+        return res.status(400).json({error: 'error'});
+    }
+});
