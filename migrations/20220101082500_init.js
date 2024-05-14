@@ -25,6 +25,7 @@ exports.up = function(knex) {
         table.increments('id');
         table.timestamp('created_at').defaultTo(knex.fn.now());
         table.string('encro_key').notNullable();
+        table.string('name').unique().notNullable();
     }).then(()=>{});
 
     knex.schema.createTable('unverified_users', table => {

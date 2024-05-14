@@ -58,7 +58,19 @@ afterAll( () => {
 
 
 describe("Devices", () => {
-    it('not sure yet', async (done)=>{
+
+    it('GET /devices/list returns 401/403 for non manager users', async (done)=>{
+        await get('devices/list', {}, async (res)=>{
+            expect(res.statusCode).toEqual(401);
+        });
+        await get('devices/list', {}, async (res)=>{
+            expect(res.statusCode).toEqual(403);
+        }, testUnverifiedUser.cookies);    
+        await get('devices/list', {}, async (res)=>{
+            expect(res.statusCode).toEqual(403);
+        }, testMemberUser.cookies);
         done();
     });
+
+    
 });
