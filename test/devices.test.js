@@ -17,6 +17,9 @@ const testAdminUser =       {email:'admin@test.com',       password: 'adminpass'
 const testAdminUser2 =      {email:'admin2@test.com',      password: 'adminpass', role: 'admin'};
 const testUsers=[testSuperUser, testUnverifiedUser, testUnverifiedUser2, testMemberUser, testMemberUser2, testManagerUser, testManagerUser2, testAdminUser, testAdminUser2];
 
+const testDevice1 = {name: 'Garage', encro_key:'9a93f3723e03bb3a4f51b6d353982b3847447293149a1e9b706cb9ae876e183c', actions:[{title:'operate', type:'button'}]};
+const testDevice2 = {name: 'Stoop',  encro_key:'83204cefe804609e65ffba77a667d97f200b4e1102a7425ea8d0d2dbbdaf697d'};
+const testDevices=[testDevice1, testDevice2];
 
 const {app} = require('../app.js');
 const request = require('supertest')(app);
@@ -44,9 +47,17 @@ async function insertUsers(db){
     testUsers.sort((a,b)=>a.id-b.id);
 }
 
+async function insertDevices(db){
+    for (const device of testDevices){
+        const [result]=await db('devices').insert({name: device.name, encro_key: device.encro_key});
+        device.id=result.id;
+    }
+}
+
 beforeAll( async done => {
     knex = await waitForKnexPromise();
     await insertUsers(knex);
+    await insertDevices(knex);
     done();
 
 })
@@ -59,16 +70,23 @@ afterAll( () => {
 
 describe("Devices", () => {
 
-    it('GET /devices/list|action returns 401/403 for non verified users', async (done)=>{
-        const list=['list', 'action'];
-        for (const i of list){
-            await get('devices/'+i, {}, async (res)=>{
-                expect(res.statusCode).toEqual(401);
-            });
-            await get('devices/'+i, {}, async (res)=>{
-                expect(res.statusCode).toEqual(403);
-            }, testUnverifiedUser.cookies);
-        }
+    it('GET /devices/list returns 401/403 for non verified users', async (done)=>{
+        await get('devices/list', {}, async (res)=>{
+            expect(res.statusCode).toEqual(401);
+        });
+        await get('devices/list', {}, async (res)=>{
+            expect(res.statusCode).toEqual(403);
+        }, testUnverifiedUser.cookies);
+        done();
+    });
+
+    it('POST /devices/action returns 401/403 for non verified users', async (done) => {
+        await post('devices/action', {}, async (res)=>{
+            expect(res.statusCode).toEqual(401);
+        });
+        await post('devices/action', {}, async (res)=>{
+            expect(res.statusCode).toEqual(403);
+        }, testUnverifiedUser.cookies);
         done();
     });
 
@@ -77,13 +95,13 @@ describe("Devices", () => {
         const list=['add', 'delete', 'update'];
         for (const i of list){
             await get('devices/'+i, {}, async (res)=>{
-                expect(res.statusCode).toEqual(401);
+                expect(i+String(res.statusCode)).toEqual(i+'401');
             });
             await get('devices/'+i, {}, async (res)=>{
-                expect(res.statusCode).toEqual(403);
+                expect(i+String(res.statusCode)).toEqual(i+'403');
             }, testUnverifiedUser.cookies);    
             await get('devices/'+i, {}, async (res)=>{
-                expect(res.statusCode).toEqual(403);
+                expect(i+String(res.statusCode)).toEqual(i+'403');
             }, testMemberUser.cookies);
         }
         done();
