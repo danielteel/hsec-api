@@ -9,7 +9,7 @@
   },
   "author": "Dan Teel <danjteel@gmail.com>",
   "license": "MIT",
-  "jest": {},
+  "jest": {"setupFiles":["./test/setupTest.js"]},
   "dependencies": {
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",

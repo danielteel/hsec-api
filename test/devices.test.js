@@ -59,18 +59,33 @@ afterAll( () => {
 
 describe("Devices", () => {
 
-    it('GET /devices/list returns 401/403 for non manager users', async (done)=>{
-        await get('devices/list', {}, async (res)=>{
-            expect(res.statusCode).toEqual(401);
-        });
-        await get('devices/list', {}, async (res)=>{
-            expect(res.statusCode).toEqual(403);
-        }, testUnverifiedUser.cookies);    
-        await get('devices/list', {}, async (res)=>{
-            expect(res.statusCode).toEqual(403);
-        }, testMemberUser.cookies);
+    it('GET /devices/list|action returns 401/403 for non verified users', async (done)=>{
+        const list=['list', 'action'];
+        for (const i of list){
+            await get('devices/'+i, {}, async (res)=>{
+                expect(res.statusCode).toEqual(401);
+            });
+            await get('devices/'+i, {}, async (res)=>{
+                expect(res.statusCode).toEqual(403);
+            }, testUnverifiedUser.cookies);
+        }
         done();
     });
 
-    
+
+    it('GET /devices/add|delete|update returns 401/403 for non manager users', async (done)=>{
+        const list=['add', 'delete', 'update'];
+        for (const i of list){
+            await get('devices/'+i, {}, async (res)=>{
+                expect(res.statusCode).toEqual(401);
+            });
+            await get('devices/'+i, {}, async (res)=>{
+                expect(res.statusCode).toEqual(403);
+            }, testUnverifiedUser.cookies);    
+            await get('devices/'+i, {}, async (res)=>{
+                expect(res.statusCode).toEqual(403);
+            }, testMemberUser.cookies);
+        }
+        done();
+    });    
 });

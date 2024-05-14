@@ -5,9 +5,6 @@ const textDecoder = new TextDecoder;
 
 let server = null;
 
-const devicePort = process.env.API_DEV_PORT || 4004;
-
-
 class DeviceIO {
     static devices = [];
     static deviceCounter=0;
@@ -171,14 +168,10 @@ function getImageLibrary(){
     return imageLibrary;
 }
 
-function startupDeviceServer(){
+function createDeviceServer(){
     if (server) return;
     
     server = new (require('net')).Server();
-
-    server.listen(devicePort, function() {
-        console.log(`Device server listening on port ${devicePort}`);
-    });
 
 
     server.on('connection', function(socket) {
@@ -199,9 +192,11 @@ function startupDeviceServer(){
 
         const packetio = new DeviceIO(socket, "4c97d02ae05b748dcb67234065ddf4b8f832a17826cf44a4f90a91349da78cba", onCompletePacket, onError);
     });
+
+    return server;
 }
 
 
 
 
-module.exports = {startupDeviceServer, getDevices: DeviceIO.getDevices, getImageLibrary};
+module.exports = {createDeviceServer, getDevices: DeviceIO.getDevices, getImageLibrary};

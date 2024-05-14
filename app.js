@@ -3,7 +3,7 @@ const cors = require('cors');
 const helmet = require("helmet");
 const cookieparser = require("cookie-parser");
 const { connect } = require('./database');
-const {startupDeviceServer} = require('./deviceServer.js');
+const {createDeviceServer} = require('./deviceServer.js');
 
 const { initAccessToken } = require('./common/accessToken');
 
@@ -28,6 +28,9 @@ app.use('/user', require('./routes/user'));
 app.use('/cam', require('./routes/cam'));
 app.use('/manage', require('./routes/manage'));
 
+
+const deviceServer=createDeviceServer();
+
 const knexConfig = require('./knexfile')[process.env.FORCE_SQLITE ? 'test' : process.env.NODE_ENV || 'development'];
 
 connect(knexConfig, async (knex) => {
@@ -40,6 +43,5 @@ connect(knexConfig, async (knex) => {
     await initAccessToken(knex);
 });
 
-startupDeviceServer();
 
-module.exports = { app };
+module.exports = { app, deviceServer };
