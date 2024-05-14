@@ -19,7 +19,7 @@ const testUsers=[testSuperUser, testUnverifiedUser, testUnverifiedUser2, testMem
 
 const testDevice1 = {name: 'Garage', encro_key:'9a93f3723e03bb3a4f51b6d353982b3847447293149a1e9b706cb9ae876e183c', actions:[{title:'operate', type:'button'}]};
 const testDevice2 = {name: 'Stoop',  encro_key:'83204cefe804609e65ffba77a667d97f200b4e1102a7425ea8d0d2dbbdaf697d'};
-const testDevices=[testDevice1, testDevice2];
+const testDevices = [testDevice1, testDevice2];
 
 const {app} = require('../app.js');
 const request = require('supertest')(app);
@@ -91,16 +91,16 @@ describe("Devices", () => {
     });
 
 
-    it('GET /devices/add|delete|update returns 401/403 for non manager users', async (done)=>{
+    it('POST /devices/add|delete|update returns 401/403 for non manager users', async (done)=>{
         const list=['add', 'delete', 'update'];
         for (const i of list){
-            await get('devices/'+i, {}, async (res)=>{
+            await post('devices/'+i, {}, async (res)=>{
                 expect(i+String(res.statusCode)).toEqual(i+'401');
             });
-            await get('devices/'+i, {}, async (res)=>{
+            await post('devices/'+i, {}, async (res)=>{
                 expect(i+String(res.statusCode)).toEqual(i+'403');
             }, testUnverifiedUser.cookies);    
-            await get('devices/'+i, {}, async (res)=>{
+            await post('devices/'+i, {}, async (res)=>{
                 expect(i+String(res.statusCode)).toEqual(i+'403');
             }, testMemberUser.cookies);
         }

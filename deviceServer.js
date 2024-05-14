@@ -25,6 +25,15 @@ class DeviceIO {
         });
     }
 
+    static isNameConnected(name){
+        for (const device of this.devices){
+            if (device.name===name){
+                return true;
+            }
+        }
+        return false;
+    }
+
     static addDevice(device){
         this.devices.push(device);
     }
@@ -37,8 +46,8 @@ class DeviceIO {
         this.key=key;
         this.resetPacketData();
         this.socket=socket;
-        this.name='Device '+this.constructor.deviceCounter++;
         this.deviceHandshakeNumber=null;
+        this.name=null;
 
         this.socket.setNoDelay();
 
@@ -47,6 +56,7 @@ class DeviceIO {
         
 
         socket.setTimeout(20000);
+        
         socket.on('data', this.onData);
         socket.on('end', () => {
             this.constructor.removeDevice(this);
@@ -66,6 +76,9 @@ class DeviceIO {
     resetPacketData = () => {
         this.magic1=null;
         this.magic2=null;
+        this.tempName=null;
+        this.nameLength=null;
+        this.nameWriteIndex=0;
         this.length1=null;
         this.length2=null;
         this.length3=null;
@@ -108,11 +121,41 @@ class DeviceIO {
                 this.magic1=byte;
             }else if (this.magic2===null){
                 this.magic2=byte;
-                if (this.magic1!=73 || this.magic2!=31){
+                if (this.magic1===73 && this.magic2===31){
+
+                }else if (this.magic1===13 && this.magic2===37){
+                    if (this.name!==null){
+                        this.socket.destroy();
+                        this.constructor.removeDevice(this);
+                        this.onError(this, this.name+' already recieved initial handshake packet, closing connection');
+                        return;
+                    }
+                }else{
                     this.socket.destroy();
                     this.constructor.removeDevice(this);
                     this.onError(this, this.name+' bad magic bytes, closing connection');
                     return;
+                }
+            }else if (this.nameLength===null && this.magic1===13 && this.magic2===37){
+                this.nameLength=byte;
+                this.tempName="";
+                if (this.nameLength===0){
+                    this.socket.destroy();
+                    this.constructor.removeDevice(this);
+                    this.onError(this, 'device name cant be zero length, closing connection');
+                    return;
+                }
+            }else if (this.nameWriteIndex<this.nameLength && this.magic1===13 && this.magic2===37){
+                this.tempName=this.tempName+String.fromCharCode(byte);
+                this.nameWriteIndex++;
+                if (this.nameWriteIndex>=this.nameLength){
+                    if (this.constructor.isNameConnected(this.tempName)){
+                        this.socket.destroy();
+                        this.constructor.removeDevice(this);
+                        this.onError(this, 'device with name '+this.tempName+' is already connected, closing connection');
+                        return;
+                    }
+                    this.name=this.tempName;
                 }
             }else if (this.length1===null){
                 this.length1=byte;
@@ -143,8 +186,15 @@ class DeviceIO {
                     //Process complete packet here
                     console.log('packet recieved');
                     const {data: decrypted, handshake: recvdHandshake} = decrypt(this.payload, this.key);
-                    if (this.deviceHandshakeNumber===null && decrypted.length===0){
+                    if (this.deviceHandshakeNumber===null){
                         this.deviceHandshakeNumber=new Uint32Array([recvdHandshake]);
+                        if (decrypted.length!=0){
+                            const actions=textDecoder.decode(decrypted).split(',');
+                            for (const action of actions){
+                                const [name, type, commandByte] = action.split(':');
+                                console.log(name, type, commandByte);
+                            }
+                        }
                     }else if (recvdHandshake!=this.deviceHandshakeNumber[0]){
                         this.socket.destroy();
                         this.constructor.removeDevice(this);
@@ -181,8 +231,6 @@ function createDeviceServer(){
             if (data[0]===0xFF && data[1]===0xD8){
                 imageLibrary[device.name]=data;
                 console.log('device sent an image', device.name);
-            }else{
-                device.name=textDecoder.decode(data);
             }
         }
 
