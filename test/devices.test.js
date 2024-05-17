@@ -17,9 +17,10 @@ const testAdminUser =       {email:'admin@test.com',       password: 'adminpass'
 const testAdminUser2 =      {email:'admin2@test.com',      password: 'adminpass', role: 'admin'};
 const testUsers=[testSuperUser, testUnverifiedUser, testUnverifiedUser2, testMemberUser, testMemberUser2, testManagerUser, testManagerUser2, testAdminUser, testAdminUser2];
 
-const testDevice1 = {name: 'Garage', encro_key:'9a93f3723e03bb3a4f51b6d353982b3847447293149a1e9b706cb9ae876e183c', actions:[{title:'operate', type:'void', commandByte: 1}]};
-const testDevice2 = {name: 'Stoop',  encro_key:'83204cefe804609e65ffba77a667d97f200b4e1102a7425ea8d0d2dbbdaf697d'};
-const testDevices = [testDevice1, testDevice2];
+const testDevice1 = {connect: true,  name: 'Garage', encro_key:'9a93f3723e03bb3a4f51b6d353982b3847447293149a1e9b706cb9ae876e183c', actions:[{title:'operate', type:'void', commandByte: 1}]};
+const testDevice2 = {connect: true,  name: 'Stoop',  encro_key:'83204cefe804609e65ffba77a667d97f200b4e1102a7425ea8d0d2dbbdaf697d'};
+const testDevice3 = {connect: false, name: 'Balcony',  encro_key:'14315df92804609e65efbc37a167d97f203b4e6102a2225ea8d0d2dccdaf647e'};
+const testDevices = [testDevice1, testDevice2, testDevice3];
 
 const {app} = require('../app.js');
 const request = require('supertest')(app);
@@ -49,9 +50,11 @@ async function insertUsers(db){
 
 async function insertDevices(db){
     for (const device of testDevices){
-        const [result]=await db('devices').insert({name: device.name, encro_key: device.encro_key});
+        const [result]=await db('devices').insert({name: device.name, encro_key: device.encro_key}).returning('*');
         device.id=result.id;
-        DeviceIO.addDevice({name: device.name, key: device.encro_key});
+        if (device.connect){
+            DeviceIO.addDevice({name: device.name, key: device.encro_key, actions: device.actions, lastTimeRecvd: 2500000000000});
+        }
     }
 }
 
@@ -109,9 +112,42 @@ describe("Devices", () => {
     });    
 
     it('GET /devices/list returns list of devices without encro_key for non admin users', async (done)=>{
-        await get('devices/list', {}, async (res)=>{
-            expect(res.statusCode).toEqual(200);
-        }, testMemberUser.cookies);
+        for (const user of [testMemberUser, testManagerUser]){
+            await get('devices/list', {}, async (res)=>{
+                expect(res.statusCode).toEqual(200);
+                res.body.sort((a,b)=>a.device_id-b.device_id);
+                
+                const devicesExpected=testDevices.map( d => {
+                    if (d.connect){
+                        return {device_id: d.id, name: d.name, connected: true};
+                    }
+                    return {device_id: d.id, name: d.name};
+                });
+                expect(res.body).toEqual(devicesExpected);
+    
+            }, user.cookies);
+        }
+
+        done();
+    });
+
+    it('GET /devices/list returns list of devices with encro_key for admin users', async (done)=>{
+        for (const user of [testAdminUser, testSuperUser]){
+            await get('devices/list', {}, async (res)=>{
+                expect(res.statusCode).toEqual(200);
+                res.body.sort((a,b)=>a.device_id-b.device_id);
+                
+                const devicesExpected=testDevices.map( d => {
+                    if (d.connect){
+                        return {device_id: d.id, name: d.name, encro_key: d.encro_key, connected: true};
+                    }
+                    return {device_id: d.id, name: d.name, encro_key: d.encro_key};
+                });
+                expect(res.body).toEqual(devicesExpected);
+    
+            }, user.cookies);
+        }
+
         done();
     });
 });

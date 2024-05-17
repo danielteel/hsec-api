@@ -4,7 +4,7 @@ const { needKnex } = require('../database');
 const {getHash, verifyFields, generateVerificationCode, isLegalPassword} = require('../common/common');
 const fetch = require('node-fetch');
 
-const {getImageLibrary}=require('../deviceServer');
+const {DeviceIO}=require('../deviceServer');
 
 const router = express.Router();
 module.exports = router;
@@ -17,6 +17,15 @@ router.get('/list', [needKnex, authenticate.bind(null, 'member')], async (req, r
             devices = await req.knex('devices').select(['id as device_id', 'name', 'encro_key']);
         }else{
             devices = await req.knex('devices').select(['id as device_id', 'name']);
+        }
+        const connectedDevices=DeviceIO.getDevices();
+        for (const connectedDevice of connectedDevices){
+            for (const device of devices){
+                if (connectedDevice.name===device.name){
+                    device.connected=true;
+                    break;
+                }
+            }
         }
         res.json(devices);
     }catch(e){
