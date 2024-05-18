@@ -21,6 +21,7 @@ const testDevice1 = {connect: true,  name: 'Garage', encro_key:'9a93f3723e03bb3a
 const testDevice2 = {connect: true,  name: 'Stoop',  encro_key:'83204cefe804609e65ffba77a667d97f200b4e1102a7425ea8d0d2dbbdaf697d'};
 const testDevice3 = {connect: false, name: 'Balcony',  encro_key:'14315df92804609e65efbc37a167d97f203b4e6102a2225ea8d0d2dccdaf647e'};
 const testDevices = [testDevice1, testDevice2, testDevice3];
+const testDeviceToAdd = {name:'TestDevice', encro_key: '052cd2a541f74a628c75c5300f609493f4c6177033334271b865ea337f870988'};
 
 const {app} = require('../app.js');
 const request = require('supertest')(app);
@@ -150,4 +151,65 @@ describe("Devices", () => {
 
         done();
     });
+
+    it('POST /devices/add adds a device', async (done)=>{
+        let {statusCode, body: deviceList} = await post('devices/add', testDeviceToAdd, null, testAdminUser.cookies);
+        expect(statusCode).toEqual(200);
+        for (const device of deviceList){
+            if (device.name===testDeviceToAdd.name){
+                testDeviceToAdd.id=device.device_id;
+            }
+        }
+        deviceList=deviceList.map(v=>({name: v.name, encro_key: v.encro_key, id: v.device_id}));
+        expect(deviceList).toContainEqual(testDeviceToAdd);
+        done();
+    });
+
+    it('POST /devices/add fails adding a device with existing device name', async (done)=>{
+        let res = await post('devices/add', testDeviceToAdd, null, testAdminUser.cookies);
+        expect(res.statusCode).toEqual(400);
+        res = await post('devices/add', {...testDeviceToAdd, name: testDeviceToAdd.name+' '}, null, testAdminUser.cookies);
+        expect(res.statusCode).toEqual(400);
+        done();
+    });
+
+    it('POST /devices/add fails with invalid parameters', async (done)=>{
+        let res = await post('devices/add', {name:''}, null, testAdminUser.cookies);
+        expect(res.statusCode).toEqual(400);
+        res = await post('devices/add', {encro_key:''}, null, testAdminUser.cookies);
+        expect(res.statusCode).toEqual(400);
+        res = await post('devices/add', {name: '', encro_key:''}, null, testAdminUser.cookies);
+        expect(res.statusCode).toEqual(400);
+        res = await post('devices/add', {name: 'asd', encro_key:''}, null, testAdminUser.cookies);
+        expect(res.statusCode).toEqual(400);
+        res = await post('devices/add', {name: '', encro_key:'052cd2a541f74a628c75c5300f609493f4c6177033334271b865ea337f870988'}, null, testAdminUser.cookies);
+        expect(res.statusCode).toEqual(400);
+        res = await post('devices/add', {name: 'asdasdasd', encro_key:'123abcdef'}, null, testAdminUser.cookies);
+        expect(res.statusCode).toEqual(400);
+        res = await post('devices/add', {name: 'asdasdasd', encro_key:'G234567890123456789012345678901234567890123456789012345689012345'}, null, testAdminUser.cookies);
+        expect(res.statusCode).toEqual(400);
+        done();
+    });
+
+    it('POST /devices/delete fails when given bad parameters', async (done)=>{
+        let res = await post('devices/delete', {device_id: '0'}, null, testAdminUser.cookies);
+        expect(res.statusCode).toEqual(400);
+        res = await post('devices/delete', {device_id:-10}, null, testAdminUser.cookies);
+        expect(res.statusCode).toEqual(400);
+        res = await post('devices/delete', {}, null, testAdminUser.cookies);
+        expect(res.statusCode).toEqual(400);
+        
+        done();
+    });
+
+    it('POST /devices/delete deletes a device', async (done)=>{
+        let {statusCode, body: deviceList} = await post('devices/delete', {device_id: testDeviceToAdd.id}, null, testAdminUser.cookies);
+        expect(statusCode).toEqual(200);
+        
+        deviceList=deviceList.map(v=>({name: v.name, encro_key: v.encro_key, id: v.device_id}));
+        expect(deviceList.length).not.toEqual(0);
+        expect(deviceList).not.toContainEqual(testDeviceToAdd);
+        done();
+    });
+
 });

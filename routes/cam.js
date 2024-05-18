@@ -78,7 +78,7 @@ router.post('/add', [needKnex, authenticate.bind(null, 'admin')], async (req, re
         console.error('ERROR POST /cam/add', req.body, e);
         return res.status(400).json({error: 'error'});
     }
-})
+});
 
 router.post('/delete', [needKnex, authenticate.bind(null, 'admin')], async (req, res) => {
     try {
