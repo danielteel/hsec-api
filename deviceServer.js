@@ -28,11 +28,11 @@ class DeviceIO {
         setTimeout(this.runManualTimeoutCheck, this.timeoutPeriod);  
     }
 
-    static getDevices(){
+    static getDevices = () => {
         return this.devices;
     }
 
-    static removeDevice(device){
+    static removeDevice = (device) => {
         try{
             if (device.socket){
                 device.socket.destroy();
@@ -45,7 +45,7 @@ class DeviceIO {
         });
     }
 
-    static isNameConnected(name){
+    static isNameConnected = (name) =>{
         for (const device of this.devices){
             if (device.name===name){
                 return true;
@@ -54,7 +54,7 @@ class DeviceIO {
         return false;
     }
 
-    static addDevice(device){
+    static addDevice = (device) => {
         this.devices.push(device);
     }
 
@@ -93,6 +93,12 @@ class DeviceIO {
         });
 
         this.sendInitialHandshake();
+    }
+
+    onDeviceDatabaseDelete = () => {
+        socket.destroy();
+        this.constructor.removeDevice(this);
+        this.onError(this.name+' device was deleted from database, closing connection', this);
     }
 
     resetPacketData = () => {

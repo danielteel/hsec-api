@@ -19,7 +19,7 @@ const testUsers=[testSuperUser, testUnverifiedUser, testUnverifiedUser2, testMem
 
 const testDevice1 = {connect: true,  name: 'Garage', encro_key:'9a93f3723e03bb3a4f51b6d353982b3847447293149a1e9b706cb9ae876e183c', actions:[{title:'operate', type:'void', commandByte: 1}]};
 const testDevice2 = {connect: true,  name: 'Stoop',  encro_key:'83204cefe804609e65ffba77a667d97f200b4e1102a7425ea8d0d2dbbdaf697d'};
-const testDevice3 = {connect: false, name: 'Balcony',  encro_key:'14315df92804609e65efbc37a167d97f203b4e6102a2225ea8d0d2dccdaf647e'};
+const testDevice3 = {connect: false, name: 'Balcony',  encro_key:'14315df92804609e65efbc37a167d97f203b4e6102a2225ea8d0d2dccdaf647e', actions:[{title:'light', type:'onoff', commandByte: 2}]};
 const testDevices = [testDevice1, testDevice2, testDevice3];
 const testDeviceToAdd = {name:'TestDevice', encro_key: '052cd2a541f74a628c75c5300f609493f4c6177033334271b865ea337f870988'};
 
@@ -54,7 +54,11 @@ async function insertDevices(db){
         const [result]=await db('devices').insert({name: device.name, encro_key: device.encro_key}).returning('*');
         device.id=result.id;
         if (device.connect){
-            DeviceIO.addDevice({name: device.name, key: device.encro_key, actions: device.actions, lastTimeRecvd: 2500000000000});
+            const devToAdd = {name: device.name, key: device.encro_key, actions: device.actions, lastTimeRecvd: 2500000000000, onDeviceDatabaseDelete: null};
+            DeviceIO.addDevice(devToAdd);
+            devToAdd.onDeviceDatabaseDelete=()=>{
+                DeviceIO.removeDevice(devToAdd);
+            }
         }
     }
 }
@@ -119,10 +123,14 @@ describe("Devices", () => {
                 res.body.sort((a,b)=>a.device_id-b.device_id);
                 
                 const devicesExpected=testDevices.map( d => {
+                    let obj={device_id: d.id, name: d.name};
                     if (d.connect){
-                        return {device_id: d.id, name: d.name, connected: true};
+                        obj.connected=true;
+                        if (d.actions){
+                            obj.actions=d.actions;
+                        }
                     }
-                    return {device_id: d.id, name: d.name};
+                    return obj;
                 });
                 expect(res.body).toEqual(devicesExpected);
     
@@ -139,10 +147,14 @@ describe("Devices", () => {
                 res.body.sort((a,b)=>a.device_id-b.device_id);
                 
                 const devicesExpected=testDevices.map( d => {
+                    let obj={device_id: d.id, name: d.name, encro_key: d.encro_key};
                     if (d.connect){
-                        return {device_id: d.id, name: d.name, encro_key: d.encro_key, connected: true};
+                        obj.connected=true;
+                        if (d.actions){
+                            obj.actions=d.actions;
+                        }
                     }
-                    return {device_id: d.id, name: d.name, encro_key: d.encro_key};
+                    return obj;
                 });
                 expect(res.body).toEqual(devicesExpected);
     
@@ -209,6 +221,48 @@ describe("Devices", () => {
         deviceList=deviceList.map(v=>({name: v.name, encro_key: v.encro_key, id: v.device_id}));
         expect(deviceList.length).not.toEqual(0);
         expect(deviceList).not.toContainEqual(testDeviceToAdd);
+        done();
+    });
+
+
+
+    it('POST /devices/update fails when given bad parameters', async (done) => {
+        let res=await post('devices/update', {device_id: testDevice1.id}, null, testAdminUser.cookies);
+        expect(res.statusCode).toEqual(400);
+        res=await post('devices/update', {device_id: testDevice1.id, name: testDevice2.name}, null, testAdminUser.cookies);
+        expect(res.statusCode).toEqual(400);
+        res=await post('devices/update', {device_id: testDevice1.id, name: testDevice2.name, encro_key: testDevice1.encro_key}, null, testAdminUser.cookies);
+        expect(res.statusCode).toEqual(400);
+        res=await post('devices/update', {name: testDevice1.name+testDevice2.name, encro_key: testDevice1.encro_key}, null, testAdminUser.cookies);
+        expect(res.statusCode).toEqual(400);
+        res=await post('devices/update', {device_id: testDevice1.id, name: testDevice1.name+testDevice2.name, encro_key: '1234567890A'}, null, testAdminUser.cookies);
+        expect(res.statusCode).toEqual(400);
+        res=await post('devices/update', {device_id: testDevice1.id, name: testDevice1.name+testDevice2.name, encro_key: '1FGE'}, null, testAdminUser.cookies);
+        expect(res.statusCode).toEqual(400);
+        done();
+    });
+
+    it('POST /devices/update updates a device', async (done)=>{
+        const res=await post('devices/update', {device_id: testDevice1.id, name: testDevice1.name+testDevice2.name, encro_key: testDevice1.encro_key}, null, testAdminUser.cookies);
+        expect(res.statusCode).toEqual(200);
+
+        testDevice1.name=testDevice1.name+testDevice2.name;
+        testDevice1.connect=false;
+
+        res.body.sort((a,b)=>a.device_id-b.device_id);
+                
+        const devicesExpected=testDevices.map( d => {
+            let obj={device_id: d.id, name: d.name, encro_key: d.encro_key};
+            if (d.connect){
+                obj.connected=true;
+                if (d.actions){
+                    obj.actions=d.actions;
+                }
+            }
+            return obj;
+        });
+        
+        expect(res.body).toEqual(devicesExpected);
         done();
     });
 
