@@ -9,7 +9,7 @@ const {DeviceIO}=require('../deviceServer');
 const router = express.Router();
 module.exports = router;
 
-async function getAndValidateDevices(knex, userRole){
+async function getAndValidateDevices(knex, userRole, wantDevIO=false){
     let devices;
     if (userRole==='admin' || userRole==='super'){
         devices = await knex('devices').select(['id as device_id', 'name', 'encro_key']);
@@ -22,6 +22,7 @@ async function getAndValidateDevices(knex, userRole){
         for (const device of devices){
             if (connectedDevice.name===device.name){
                 isValid=true;
+                if (wantDevIO) device.devio=connectedDevice;
                 device.connected=true;
                 if (connectedDevice.actions){
                     device.actions=connectedDevice.actions;
@@ -36,9 +37,55 @@ async function getAndValidateDevices(knex, userRole){
     return devices;
 }
 
+async function getADevice(knex, userRole, deviceId, wantDevIO=false){
+    let device;
+    if (userRole==='admin' || userRole==='super'){
+        device = await knex('devices').select(['id as device_id', 'name', 'encro_key']).where('id', deviceId);
+    }else{
+        device = await knex('devices').select(['id as device_id', 'name']).where('id', deviceId);
+    }
+    if (device.length){
+        device=device[0];
+        const connectedDevices=DeviceIO.getDevices();
+        for (const connectedDevice of connectedDevices){
+            if (connectedDevice.name===device.name){
+                    if (wantDevIO) device.devio=connectedDevice;
+                    device.connected=true;
+                    if (connectedDevice.actions){
+                        device.actions=connectedDevice.actions;
+                    }
+                    break;
+            }
+        }
+        return device;
+    }
+    return null;
+}
+
 router.get('/list', [needKnex, authenticate.bind(null, 'member')], async (req, res) => {
     try {
         res.json(await getAndValidateDevices(req.knex, req.user.role));
+    }catch(e){
+        console.error('ERROR GET /devices/list', req.body, e);
+        return res.status(400).json({error: 'error'});
+    }
+});
+
+router.get('/image/:device_id', [needKnex, authenticate.bind(null, 'member')], async (req, res) => {
+    try {
+        const device_id = Number(req.params.device_id);
+
+        const device=await getADevice(req.knex, req.user.role, device_id, true);
+        if (device && device.devio){
+            if (device.devio.image){
+                res.writeHead(200, { 'content-type': 'image/jpeg' });
+                return res.end(device.devio.image, 'binary');
+            }else{
+                return res.status(400).json({error: 'device hasnt sent an image yet'});
+            }
+        }
+
+        return res.status(400).json({error: 'invalid device id or its not connected'});
     }catch(e){
         console.error('ERROR GET /devices/list', req.body, e);
         return res.status(400).json({error: 'error'});
@@ -118,7 +165,23 @@ router.post('/delete', [needKnex, authenticate.bind(null, 'admin')], async (req,
 
 router.post('/action', [needKnex, authenticate.bind(null, 'member')], async (req, res) => {
     try {
-        return res.status(200).end();
+        const fields = [
+            'device_id:number',
+            'action:string:*:lt',
+            'data:any:?'
+        ]
+        let [fieldCheck, device_id, action, data] = verifyFields(req.body, fields);
+        if (fieldCheck) return res.status(400).json({error: 'failed field check: '+fieldCheck});
+
+        const device = await getADevice(req.knex, req.user.role, device_id, true);
+
+        if (device.devio){
+            if (device.devio.sendAction(action, data)){
+                return res.status(200).end();
+            }
+        }
+    
+        return res.status(400).json({error: 'failed to send action, either device not connected, or invalid action command'});
     }catch(e){
         console.error('ERROR POST /devices/action', req.body, e);
         return res.status(400).json({error: 'error'});

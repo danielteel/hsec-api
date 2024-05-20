@@ -58,12 +58,11 @@ class DeviceIO {
         this.devices.push(device);
     }
 
-    constructor(socket, name, key, deviceHandshakeNumber, actions, onCompletePacket, onError){
+    constructor(socket, name, key, deviceHandshakeNumber, actions, onError){
         this.lastTimeRecvd = Date.now();
         this.name=name;
         this.deviceHandshakeNumber=deviceHandshakeNumber;
         this.actions=actions;
-        this.onCompletePacket=onCompletePacket;
         this.onError=onError;
         this.key=key;
         this.resetPacketData();
@@ -99,6 +98,29 @@ class DeviceIO {
         socket.destroy();
         this.constructor.removeDevice(this);
         this.onError(this.name+' device was deleted from database, closing connection', this);
+    }
+
+    onCompletePacket = (device, data) => {
+        if (data[0]===0xFF && data[1]===0xD8){
+            device.image=data;
+        }
+    }
+
+    sendAction = (actionTitle, data) => {
+        if (!Array.isArray(this.actions)) return false;
+        for (const action of this.actions){
+            if (action.title.toLowerCase().trim()===actionTitle.toLowerCase().trim()){
+                switch (action.type.toLowerCase().trim()){
+                    case 'void':
+                        this.sendPacket(new Uint8Array([action.commandByte]));
+                        return true;
+                    case 'byte':
+                        this.sendPacket(new Uint8Array([action.commandByte, data]));
+                        return true;
+                }
+            }
+        }
+        return false;
     }
 
     resetPacketData = () => {
@@ -205,10 +227,9 @@ class DeviceIO {
 }
 
 class UndeterminedDevice {
-    constructor(socket, onCompletePacket, onError){
+    constructor(socket, onError){
         this.socket=socket;
         this.onError=onError;
-        this.onCompletePacket=onCompletePacket;
         
         this.magic1=null;
         this.magic2=null;
@@ -321,7 +342,7 @@ class UndeterminedDevice {
                             }
                         }
                         this.socket.removeAllListeners();
-                        new DeviceIO(this.socket, this.name, this.key, this.deviceHandshakeNumber, this.actions, this.onCompletePacket, this.onError);
+                        new DeviceIO(this.socket, this.name, this.key, this.deviceHandshakeNumber, this.actions, this.onError);
                     }catch(e){                
                         this.socket.destroy();
                         this.onError('failed to fetch or decrypt device data');
@@ -340,17 +361,12 @@ function createDeviceServer(){
 
 
     server.on('connection', function(socket) {
-        const onCompletePacket = (device, data) => {
-            if (data[0]===0xFF && data[1]===0xD8){
-                device.image=data;
-                console.log(device.name+' sent an image');
-            }
-        }
+
 
         const onError = (msg, device) => {
                 console.log('Device Error', msg);
         }
-        new UndeterminedDevice(socket, onCompletePacket, onError);
+        new UndeterminedDevice(socket, onError);
     });
 
     return server;
