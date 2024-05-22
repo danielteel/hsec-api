@@ -27,7 +27,7 @@ exports.seed = async function(knex) {
     if (process.env.FORCE_SQLITE){
         superUser = 'superuser';
         superPass = 'superpass';
-        console.log(`SQLite mode active: super user is ${superPass} and password is ${superPass}`);
+        console.log(`SQLite mode active: super user is ${superUser} and password is ${superPass}`);
     }else{
         superUser = process.env.SUPER_USERNAME || ('super_'+generateVerificationCode(2));
         superPass = process.env.SUPER_PASSWORD || generateVerificationCode(8);
