@@ -2,7 +2,7 @@ const {encrypt, decrypt} = require('./encro');
 const crypto = require('crypto');
 const {getKnex} = require('./database');
 const textDecoder = new TextDecoder;
-// const textEncoder = new TextEncoder;
+const textEncoder = new TextEncoder;
 
 let server = null;
 
@@ -146,6 +146,7 @@ class DeviceIO {
     }
 
     sendPacket = (data) => {
+        if (typeof data==='string') data=textEncoder.encode(data);
         if (data.length>(0x0FFFF0)){
             this.onError(this.name+' cant send a message bigger than 0x0FFFF0', this);
             return;
@@ -321,7 +322,6 @@ class UndeterminedDevice {
                 this.payloadWriteIndex+=howFar;
                 if (this.payloadWriteIndex>=this.length){
                     //Process complete packet here
-                    
                     try{
                         const [{encro_key}] = await getKnex()('devices').select('encro_key').where({name: this.name});
                         this.key=encro_key;
