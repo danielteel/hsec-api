@@ -141,7 +141,9 @@ class DeviceIO {
         (new DataView(header.buffer)).setUint32(2, encryptedData.length, true);
         
         this.socket.write(header);
+        console.log(header);
         this.socket.write(encryptedData);
+        console.log(encryptedData);
 
     }
 
