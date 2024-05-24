@@ -141,9 +141,7 @@ class DeviceIO {
         (new DataView(header.buffer)).setUint32(2, encryptedData.length, true);
         
         this.socket.write(header);
-        console.log(header);
         this.socket.write(encryptedData);
-
     }
 
     sendPacket = (data) => {
@@ -157,7 +155,6 @@ class DeviceIO {
         const header=new Uint8Array([73, 31, 0, 0, 0, 0]);
         (new DataView(header.buffer)).setUint32(2, encryptedData.length, true);
         this.socket.write(header);
-        console.log(header);
         this.socket.write(encryptedData);
 
         this.handshakeNumber[0]++;
