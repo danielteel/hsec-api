@@ -336,8 +336,8 @@ class UndeterminedDevice {
                         if (decrypted.length!=0){
                             const actions=textDecoder.decode(decrypted).split(',');
                             for (const action of actions){
-                                const [name, type, commandByte] = action.split(':');
-                                this.actions.push({title: name, type, commandByte});
+                                const [title, type, commandByte] = action.split(':');
+                                this.actions.push({title, type, commandByte});
                             }
                         }
                         this.socket.removeAllListeners();
