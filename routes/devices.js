@@ -133,8 +133,10 @@ router.post('/update', [needKnex, authenticate.bind(null, 'admin')], async (req,
         }
         if (fieldCheck) return res.status(400).json({error: 'failed field check: '+fieldCheck});
 
-        const deviceExists = await req.knex('devices').select(['name']).where('name', name);
-        if (deviceExists.length) return res.status(400).json({error: 'device with name '+name+' already exists'});
+        const deviceExists = await req.knex('devices').select(['id as device_id', 'name']).where('name', name);
+        if (deviceExists.length){
+            if (deviceExists[0].device_id!=device_id) return res.status(400).json({error: 'device with name '+name+' already exists'});
+        }
 
         await req.knex('devices').update({name, encro_key}).where({id: device_id});
 
