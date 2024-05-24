@@ -251,6 +251,7 @@ describe("Devices", () => {
         expect(res.statusCode).toEqual(400);
         done();
     });
+
     it('POST /devices/update updates a device', async (done)=>{
         expect(testDevice1.devio.onDeviceDatabaseDelete).toHaveBeenCalledTimes(0);
         const res=await post('devices/update', {device_id: testDevice1.id, name: testDevice1.name+testDevice2.name, encro_key: testDevice1.encro_key}, null, testAdminUser.cookies);
@@ -258,6 +259,31 @@ describe("Devices", () => {
 
         testDevice1.name=testDevice1.name+testDevice2.name;
         testDevice1.connect=false;//Device should be disconnected when record is updated
+
+        res.body.sort((a,b)=>a.device_id-b.device_id);
+                
+        const devicesExpected=testDevices.map( d => {
+            let obj={device_id: d.id, name: d.name, encro_key: d.encro_key};
+            if (d.connect){
+                obj.connected=true;
+                if (d.actions){
+                    obj.actions=d.actions;
+                }
+            }
+            return obj;
+        });
+        
+        expect(res.body).toEqual(devicesExpected);
+        expect(testDevice1.devio.onDeviceDatabaseDelete).toHaveBeenCalledTimes(1);
+        done();
+    });
+
+    it('POST /devices/update updates just encro key', async (done)=>{
+        const res=await post('devices/update', {device_id: testDevice2.id, name: testDevice2.name, encro_key: testDevice1.encro_key}, null, testAdminUser.cookies);
+        expect(res.statusCode).toEqual(200);
+
+        testDevice2.encro_key=testDevice1.encro_key;
+        testDevice2.connect=false;//Device should be disconnected when record is updated
 
         res.body.sort((a,b)=>a.device_id-b.device_id);
                 
@@ -336,12 +362,12 @@ describe("Devices", () => {
         done();
     });
     it('POST /devices/delete deletes a device and disconnects it', async (done) => {
-        expect(testDevice2.devio.onDeviceDatabaseDelete).toHaveBeenCalledTimes(0);
+        expect(testDevice4.devio.onDeviceDatabaseDelete).toHaveBeenCalledTimes(0);
 
-        const res = await post('devices/delete', {device_id: testDevice2.id}, null, testAdminUser.cookies);
+        const res = await post('devices/delete', {device_id: testDevice4.id}, null, testAdminUser.cookies);
         expect(res.statusCode).toEqual(200);
 
-        expect(testDevice2.devio.onDeviceDatabaseDelete).toHaveBeenCalledTimes(1);
+        expect(testDevice4.devio.onDeviceDatabaseDelete).toHaveBeenCalledTimes(1);
         
         done();
     });

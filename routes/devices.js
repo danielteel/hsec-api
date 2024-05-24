@@ -20,7 +20,7 @@ async function getAndValidateDevices(knex, userRole, wantDevIO=false){
     for (const connectedDevice of connectedDevices){
         let isValid=false;
         for (const device of devices){
-            if (connectedDevice.name===device.name){
+            if (connectedDevice.name===device.name && ((userRole!='super' && userRole!='admin') || (connectedDevice.key===device.encro_key))){
                 isValid=true;
                 if (wantDevIO) device.devio=connectedDevice;
                 device.connected=true;
