@@ -3,6 +3,7 @@ const cors = require('cors');
 const helmet = require("helmet");
 const cookieparser = require("cookie-parser");
 const { connect } = require('./database');
+const {createDeviceServer} = require('./deviceServer.js');
 
 const { initAccessToken } = require('./common/accessToken');
 
@@ -15,19 +16,25 @@ if (process.env.NODE_ENV!=='test'){
 }
 
 
-app.use(cors({ origin: ['http://' + process.env.DOMAIN], credentials: true }))
+if (!process.env.FORCE_SQLITE){
+    app.use(cors({ origin: ['http://' + process.env.DOMAIN], credentials: true }));
+}
 app.use(helmet());
 app.use(cookieparser());
 app.use(express.json());
 
+app.use('/devices', require('./routes/devices'));
 app.use('/user', require('./routes/user'));
 app.use('/cam', require('./routes/cam'));
 app.use('/manage', require('./routes/manage'));
 
+
+const deviceServer=createDeviceServer();
+
 const knexConfig = require('./knexfile')[process.env.FORCE_SQLITE ? 'test' : process.env.NODE_ENV || 'development'];
 
 connect(knexConfig, async (knex) => {
-    if (process.env.NODE_ENV !== 'test') console.log('database connected', knexConfig);
+    if (process.env.NODE_ENV !== 'test') console.log('database connected');
 
     if (await knex.migrate.currentVersion() === 'none') {
         await knex.migrate.latest();
@@ -37,4 +44,4 @@ connect(knexConfig, async (knex) => {
 });
 
 
-module.exports = { app };
+module.exports = { app, deviceServer };

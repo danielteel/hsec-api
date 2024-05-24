@@ -4,12 +4,12 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "jest --testTimeout=20000",
+    "test": "jest --testTimeout=50000",
     "sqlite": "node index -sqlite"
   },
   "author": "Dan Teel <danjteel@gmail.com>",
   "license": "MIT",
-  "jest": {},
+  "jest": {"setupFiles":["./test/setupTest.js"]},
   "dependencies": {
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",

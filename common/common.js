@@ -82,4 +82,6 @@ function generateVerificationCode(length=16){
     return crypto.randomBytes(length).toString("hex").toLowerCase();
 }
 
-module.exports = {getHash, verifyFields, generateVerificationCode, isLegalPassword, isValidEmail};
+const isHexadecimal = str => /^[a-fA-F0-9]+$/i.test(str);
+
+module.exports = {getHash, verifyFields, generateVerificationCode, isLegalPassword, isValidEmail, isHexadecimal};

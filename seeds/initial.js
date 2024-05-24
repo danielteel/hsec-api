@@ -5,6 +5,7 @@ exports.seed = async function(knex) {
     await knex('user_changepassword').del();
     await knex('users').del();
     await knex('unverified_users').del();
+    await knex('devices').del();
     await knex('formats').del();
     await knex('crypto').del();
 
@@ -18,7 +19,18 @@ exports.seed = async function(knex) {
     await knex('formats').insert(formats);
 
 
-    const superPass = process.env.SUPER_PASSWORD || generateVerificationCode(8);
-    const superUser = process.env.SUPER_USERNAME || ('super_'+generateVerificationCode(2));
+    //const devices = [{encro_key:"4c97d02ae05b748dcb67234065ddf4b8f832a17826cf44a4f90a91349da78cba", name: "garage"}];
+    //await knex('devices').insert(devices);
+
+    let superPass;
+    let superUser;
+    if (process.env.FORCE_SQLITE){
+        superUser = 'superuser';
+        superPass = 'superpass';
+        console.log(`SQLite mode active: super user is ${superUser} and password is ${superPass}`);
+    }else{
+        superUser = process.env.SUPER_USERNAME || ('super_'+generateVerificationCode(2));
+        superPass = process.env.SUPER_PASSWORD || generateVerificationCode(8);
+    }
     await knex('users').insert({email: superUser, pass_hash: getHash(superPass), role: 'super'});
 };
