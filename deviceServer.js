@@ -364,7 +364,7 @@ function createDeviceServer(){
 
     server.on('connection', function(socket) {
 
-
+        console.log("Device connected");
         const onError = (msg, device) => {
                 console.log('Device Error', msg);
         }
