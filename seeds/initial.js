@@ -18,10 +18,6 @@ exports.seed = async function(knex) {
     ];
     await knex('formats').insert(formats);
 
-
-    //const devices = [{encro_key:"4c97d02ae05b748dcb67234065ddf4b8f832a17826cf44a4f90a91349da78cba", name: "garage"}];
-    //await knex('devices').insert(devices);
-
     let superPass;
     let superUser;
     if (process.env.FORCE_SQLITE){

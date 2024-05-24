@@ -20,7 +20,7 @@ async function getAndValidateDevices(knex, userRole, wantDevIO=false){
     for (const connectedDevice of connectedDevices){
         let isValid=false;
         for (const device of devices){
-            if (connectedDevice.name===device.name){
+            if (connectedDevice.name===device.name && ((userRole!='super' && userRole!='admin') || (connectedDevice.key===device.encro_key))){
                 isValid=true;
                 if (wantDevIO) device.devio=connectedDevice;
                 device.connected=true;
@@ -133,8 +133,10 @@ router.post('/update', [needKnex, authenticate.bind(null, 'admin')], async (req,
         }
         if (fieldCheck) return res.status(400).json({error: 'failed field check: '+fieldCheck});
 
-        const deviceExists = await req.knex('devices').select(['name']).where('name', name);
-        if (deviceExists.length) return res.status(400).json({error: 'device with name '+name+' already exists'});
+        const deviceExists = await req.knex('devices').select(['id as device_id', 'name']).where('name', name);
+        if (deviceExists.length){
+            if (deviceExists[0].device_id!=device_id) return res.status(400).json({error: 'device with name '+name+' already exists'});
+        }
 
         await req.knex('devices').update({name, encro_key}).where({id: device_id});
 
