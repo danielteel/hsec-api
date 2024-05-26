@@ -168,7 +168,9 @@ class DeviceIO {
                 this.magic1=byte;
             }else if (this.magic2===null){
                 this.magic2=byte;
-                if (this.magic1!=73 || this.magic2!=31){
+                if (this.magic1===37 && this.magic2===13){
+                    this.resetPacketData();
+                }else if (this.magic1!=73 || this.magic2!=31){
                     this.socket.destroy();
                     this.constructor.removeDevice(this);
                     this.onError(this.name+' bad magic bytes, closing connection', this);
