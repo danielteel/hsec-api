@@ -4,7 +4,26 @@ const {getKnex} = require('./database');
 const textDecoder = new TextDecoder;
 const textEncoder = new TextEncoder;
 
+const fs = require('fs');
+const path = require('path');
+const logFilePath = path.join(__dirname, 'devlog.log');
+ 
+
 let server = null;
+
+
+function logdev(...args){
+    console.log(...args);
+    let message='';
+    for (const a of args){
+        message+=String(a)+" ";
+    }
+    fs.appendFile(logFilePath, message + '\n', (err) => {
+        if (err) {
+            console.error('Device server: Error appending to log file:', err);
+        }
+    });
+}
 
 class DeviceIO {
     static timeoutPeriod=20000;
@@ -15,7 +34,7 @@ class DeviceIO {
         try{
             for (const device of DeviceIO.devices){
                 if (Date.now()-device.lastTimeRecvd>=DeviceIO.timeoutPeriod){
-                    console.log("Manual timeout of "+device.name);
+                    logdev("Manual timeout of "+device.name);
                     DeviceIO.removeDevice(device);
                 }
             }
@@ -78,7 +97,7 @@ class DeviceIO {
         socket.on('data', this.onData);
         socket.on('end', () => {
             this.constructor.removeDevice(this);
-            console.log(this.name, "closed its connection");
+            logdev(this.name, "closed its connection");
         });        
         socket.on('timeout', () => {
             socket.destroy();
@@ -363,9 +382,9 @@ function createDeviceServer(){
 
     server.on('connection', function(socket) {
 
-        console.log("Device connected");
+        logdev("Device connected");
         const onError = (msg, device) => {
-                console.log('Device Error', msg);
+            logdev('Device Error', msg);
         }
         new UndeterminedDevice(socket, onError);
     });
