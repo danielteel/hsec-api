@@ -122,6 +122,14 @@ class DeviceIO {
     onCompletePacket = (device, data) => {
         if (data[0]===0xFF && data[1]===0xD8){
             device.image=data;
+        }else if (data[0]==='i'.charCodeAt(0) && data[1]==='n'.charCodeAt(0)){
+            const time=new Date();
+            if (time.getHours()>=20 && time.getHours()<=23){
+                this.sendPacket('nf');//Its not night time
+            }else{
+                this.sendPacket('nt');//It is night time
+            }
+            return;
         }
     }
 
