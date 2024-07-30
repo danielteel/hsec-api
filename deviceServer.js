@@ -183,7 +183,7 @@ class DeviceIO {
         (new DataView(header.buffer)).setUint32(2, encryptedData.length, true);
         this.socket.write(header);
         this.socket.write(encryptedData);
-
+        
         this.handshakeNumber[0]++;
     }
 
