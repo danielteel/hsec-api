@@ -125,9 +125,9 @@ class DeviceIO {
         }else if (data[0]==='i'.charCodeAt(0) && data[1]==='n'.charCodeAt(0)){
             const time=new Date();
             if (time.getHours()>=20 && time.getHours()<=22){
-                this.sendPacket('nf');//Its not night time
+                device.sendPacket('nf');//Its not night time
             }else{
-                this.sendPacket('nt');//It is night time
+                device.sendPacket('nt');//It is night time
             }
             return;
         }
@@ -183,7 +183,7 @@ class DeviceIO {
         (new DataView(header.buffer)).setUint32(2, encryptedData.length, true);
         this.socket.write(header);
         this.socket.write(encryptedData);
-        
+
         this.handshakeNumber[0]++;
     }
 
