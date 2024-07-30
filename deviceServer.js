@@ -235,7 +235,7 @@ class DeviceIO {
                         if (recvdHandshake!=this.deviceHandshakeNumber[0]){
                             this.socket.destroy();
                             this.constructor.removeDevice(this);
-                            this.onError(this.name+' incorrect handshake number, closing connection, recvd: '+recvdHandshake[0]+' expected: '+this.deviceHandshakeNumber[0], this);
+                            this.onError(this.name+' incorrect handshake number, closing connection, recvd: '+recvdHandshake+' expected: '+this.deviceHandshakeNumber[0], this);
                             return;
                         }else{
                             this.deviceHandshakeNumber[0]++;
