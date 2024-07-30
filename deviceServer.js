@@ -123,13 +123,17 @@ class DeviceIO {
         if (data[0]===0xFF && data[1]===0xD8){
             device.image=data;
         }else if (data[0]==='i'.charCodeAt(0) && data[1]==='n'.charCodeAt(0)){
+            console.log('resolved data', data[0], data[1]);
             const time=new Date();
+            console.log(time.getHours(), time.getMinutes());
             if (time.getHours()>=20 && time.getHours()<=22){
-                //device.sendPacket(new Uint8Array([110, 102]));//Its not night time
+                device.sendPacket(new Uint8Array([110, 102]));//Its not night time
             }else{
-                //device.sendPacket(new Uint8Array([110, 116]));//It is night time
+                device.sendPacket(new Uint8Array([110, 116]));//It is night time
             }
             return;
+        }else{
+            console.log('unresolved data', data[0], data[1]);
         }
     }
 
