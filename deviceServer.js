@@ -124,7 +124,6 @@ class DeviceIO {
             device.image=data;
         }else if (data[0]==='i'.charCodeAt(0) && data[1]==='n'.charCodeAt(0)){
             const time=new Date();
-            console.log(time.getHours(), time.getMinutes());
             if (time.getHours()>=20 && time.getHours()<=22){
                 device.sendPacket(new Uint8Array([110, 116]));//It is night time
             }else{
