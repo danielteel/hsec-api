@@ -127,11 +127,11 @@ class DeviceIO {
             const time=new Date();
             console.log(time.getHours(), time.getMinutes());
             if (time.getHours()>=20 && time.getHours()<=22){
-                console.log('not night time');
-                device.sendPacket(new Uint8Array([110, 102]));//Its not night time
-            }else{
                 console.log('night time');
                 device.sendPacket(new Uint8Array([110, 116]));//It is night time
+            }else{
+                console.log('not night time');
+                device.sendPacket(new Uint8Array([110, 102]));//Its not night time
             }
             return;
         }else{
