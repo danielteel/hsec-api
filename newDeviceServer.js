@@ -165,6 +165,7 @@ class DeviceIO {
                 }else if (data[0]==='i'.charCodeAt(0) && data[1]==='='.charCodeAt(0)){
                     //Device sent interface information
                     this.actions=[];
+                    console.log(textDecoder.decode(decrypted).slice(2));
                     const actions=textDecoder.decode(decrypted).slice(2).split(',');
                     for (const action of actions){
                         const [title, type, commandByte] = action.split(':');
@@ -248,6 +249,7 @@ class DeviceIO {
                     //Process complete packet here
                     try{
                         const {data: decrypted, handshake: recvdHandshake} = decrypt(this.payload, this.key);
+                        console.log("name",this.name,"Recvd Data");
                         this.onFullPacket(recvdHandshake, decrypted);
                         this.packetState=PACKETSTATE.LEN1;
                     }catch(e){
