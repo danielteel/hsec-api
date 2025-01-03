@@ -1,7 +1,7 @@
 const {closeKnex, requestHelper, waitForKnexPromise} =require('./helpers');
 const {readFileSync} = require('fs');
 const {getHash}=require('../common/common');
-const {DeviceIO}=require('../deviceServer');
+const {DeviceIO}=require('../newDeviceServer');
 //Sets automatically created super user, set these before we require('../app.js') so database isnt seeded yet
 process.env.SUPER_PASSWORD = "superpass";
 process.env.SUPER_USERNAME = "superuser";

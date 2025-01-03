@@ -4,7 +4,7 @@ const { needKnex } = require('../database');
 const {getHash, verifyFields, generateVerificationCode, isLegalPassword, isHexadecimal} = require('../common/common');
 const fetch = require('node-fetch');
 
-const {DeviceIO}=require('../deviceServer');
+const {DeviceIO}=require('../newDeviceServer');
 
 const router = express.Router();
 module.exports = router;
