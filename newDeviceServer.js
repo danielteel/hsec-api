@@ -161,15 +161,14 @@ class DeviceIO {
                 return;
             }
             
-            console.log("name",this.name,"recieved app data", data);
             if (data){
                 if (data[0]===0xFF && data[1]===0xD8){
                     device.image=data;
                 }else if (data[0]==='i'.charCodeAt(0) && data[1]==='='.charCodeAt(0)){
                     //Device sent interface information
                     this.actions=[];
-                    console.log(textDecoder.decode(decrypted).slice(2));
-                    const actions=textDecoder.decode(decrypted).slice(2).split(',');
+                    console.log(textDecoder.decode(data).slice(2));
+                    const actions=textDecoder.decode(data).slice(2).split(',');
                     for (const action of actions){
                         const [title, type, commandByte] = action.split(':');
                         this.actions.push({title, type, commandByte});
