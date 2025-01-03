@@ -272,7 +272,7 @@ function createDeviceServer(){
     server = new (require('net')).Server();
 
     server.on('connection', function(socket) {
-        devices.push(new DeviceIO(socket));
+        new DeviceIO(socket);
     });
 
     return server;
