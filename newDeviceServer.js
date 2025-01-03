@@ -161,7 +161,7 @@ class DeviceIO {
                 return;
             }
             
-            console.log("name",this.name,"recieved app data");
+            console.log("name",this.name,"recieved app data", data);
             if (data){
                 if (data[0]===0xFF && data[1]===0xD8){
                     device.image=data;
