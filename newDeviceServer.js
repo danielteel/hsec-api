@@ -254,7 +254,7 @@ class DeviceIO {
                         this.onFullPacket(recvdHandshake, decrypted);
                         this.packetState=PACKETSTATE.LEN1;
                     }catch(e){
-                        console.log('name',this.name, this.socket.address, 'failed to decrypt packet');
+                        console.log('name',this.name, 'failed to decrypt packet:', e);
                         this.deviceErrored();
                         return;
                     }
