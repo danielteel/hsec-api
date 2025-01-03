@@ -148,7 +148,8 @@ class DeviceIO {
     }
 
     onFullPacket = (handshake, data) => {
-        if (this.netStatus===NETSTATUS.OPENED){
+        if (this.netStatus===NETSTATUS.OPENED){                        
+            console.log("name",this.name,"recieved initial handshake");
             this.clientHandshake[0]=handshake;
             this.clientHandshake[0]++;
             this.netStatus=NETSTATUS.READY;
@@ -159,6 +160,8 @@ class DeviceIO {
                 this.deviceErrored();
                 return;
             }
+            
+            console.log("name",this.name,"recieved app data");
             if (data){
                 if (data[0]===0xFF && data[1]===0xD8){
                     device.image=data;
@@ -249,7 +252,6 @@ class DeviceIO {
                     //Process complete packet here
                     try{
                         const {data: decrypted, handshake: recvdHandshake} = decrypt(this.payload, this.key);
-                        console.log("name",this.name,"Recvd Data");
                         this.onFullPacket(recvdHandshake, decrypted);
                         this.packetState=PACKETSTATE.LEN1;
                     }catch(e){
