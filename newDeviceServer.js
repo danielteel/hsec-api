@@ -198,20 +198,15 @@ class DeviceIO {
                         this.buffersWhilePaused.push(buffer.subarray(i+1));
                     }
                     getKnex()('devices').select('encro_key').where({name: this.name}).then( (val) => {
-                        if (val){
+                        if (val && val[0] && val[0].encro_key){
                             this.key=val[0].encro_key;
-                            if (!this.key){
+                            if (this.constructor.isNameConnected(this.name)){
                                 this.deviceErrored();
-                                console.log('device record "'+this.name+'" not found');
+                                console.log('device "'+this.name+'"is already connected');
                             }else{
-                                if (this.constructor.isNameConnected(this.name)){
-                                    this.deviceErrored();
-                                    console.log('device "'+this.name+'"is already connected');
-                                }else{
-                                    this.packetState=PACKETSTATE.LEN1;
-                                    this.unpauseIncomingData();
-                                    this.constructor.addDevice(this);
-                                }
+                                this.packetState=PACKETSTATE.LEN1;
+                                this.unpauseIncomingData();
+                                this.constructor.addDevice(this);
                             }
                         }else{
                             this.deviceErrored();
