@@ -197,20 +197,25 @@ class DeviceIO {
                     if (i+1<buffer.length){
                         this.buffersWhilePaused.push(buffer.subarray(i+1));
                     }
-                    getKnex()('devices').select('encro_key').where({name: this.name}).then( ([{encro_key}]) => {
-                        this.key=encro_key;
-                        if (!this.key){
+                    getKnex()('devices').select('encro_key').where({name: this.name}).then( (val) => {
+                        if (val){
+                            this.key=val[0].encro_key;
+                            if (!this.key){
+                                this.deviceErrored();
+                                console.log('device record "'+this.name+'" not found');
+                            }else{
+                                if (this.constructor.isNameConnected(this.name)){
+                                    this.deviceErrored();
+                                    console.log('device "'+this.name+'"is already connected');
+                                }else{
+                                    this.packetState=PACKETSTATE.LEN1;
+                                    this.unpauseIncomingData();
+                                    this.constructor.addDevice(this);
+                                }
+                            }
+                        }else{
                             this.deviceErrored();
                             console.log('device record "'+this.name+'" not found');
-                        }else{
-                            if (this.constructor.isNameConnected(this.name)){
-                                this.deviceErrored();
-                                console.log('device "'+this.name+'"is already connected');
-                            }else{
-                                this.packetState=PACKETSTATE.LEN1;
-                                this.unpauseIncomingData();
-                                this.constructor.addDevice(this);
-                            }
                         }
                     });
                     return;
