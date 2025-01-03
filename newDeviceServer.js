@@ -78,7 +78,7 @@ class DeviceIO {
         this.netStatus=NETSTATUS.OPENED;
         this.packetState=PACKETSTATE.NAMELEN;
 
-        this.pauseReading=true;
+        this.pauseReading=false;
         this.buffersWhilePaused=[];
 
         this.nameLength=0;
