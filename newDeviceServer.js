@@ -163,7 +163,7 @@ class DeviceIO {
             
             if (data){
                 if (data[0]===0xFF && data[1]===0xD8){
-                    device.image=data;
+                    this.image=data;
                 }else if (data[0]==='i'.charCodeAt(0) && data[1]==='='.charCodeAt(0)){
                     //Device sent interface information
                     this.actions=[];
