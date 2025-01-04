@@ -173,8 +173,8 @@ class DeviceIO {
         }else{
             if (this.clientHandshake[0]!==handshake){
                 console.log(this.name, this.socket.address, 'incorrect handshake, exepcted '+this.clientHandshake[0]+' but recvd '+handshake);
-                this.deviceErrored();
-                return;
+                //this.deviceErrored();
+                //return;
             }
             
             if (data){
