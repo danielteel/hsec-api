@@ -258,11 +258,16 @@ class DeviceIO {
                 this.packetState=PACKETSTATE.PAYLOAD;
 
                 if (this.payloadLength>0x0FFFFF){
-                    console.log(this.name, this.socket.address, 'device sent packet larger than 0x0FFFFF');
+                    console.log(this.name, 'device sent packet larger than 0x0FFFFF');
                     this.deviceErrored();
                     return;
                 }
 
+                if (this.payloadLength<0){
+                    console.log(this.name, 'device sent packet smaller than 0');
+                    this.deviceErrored();
+                    return;
+                }
                 this.payload = Buffer.alloc(this.payloadLength);
                 this.payloadWriteIndex=0;
 
