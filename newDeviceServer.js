@@ -173,8 +173,8 @@ class DeviceIO {
         }else{
             if (this.clientHandshake[0]!==handshake){
                 console.log(this.name, this.socket.address, 'incorrect handshake, exepcted '+this.clientHandshake[0]+' but recvd '+handshake);
-                //this.deviceErrored();
-                //return;
+                this.deviceErrored();
+                return;
             }
             
             if (data){
@@ -258,7 +258,7 @@ class DeviceIO {
                 this.packetState=PACKETSTATE.PAYLOAD;
 
                 if (this.payloadLength>0x0FFFFF){
-                    console.log(this.name, 'device sent packet larger than 0x0FFFFF');
+                    console.log(this.name, 'device sent packet larger than 0x0FFFFF', this.payloadLength);
                     this.deviceErrored();
                     return;
                 }
