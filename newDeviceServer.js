@@ -92,7 +92,7 @@ class DeviceIO {
         this.payloadWriteIndex=0;
         this.payload=null;
 
-        this.actions=[];
+        this.actions=null;
 
         socket.on('end', () => {
             console.log('name',this.name, this.socket.address, 'disconnected');
@@ -106,6 +106,23 @@ class DeviceIO {
             console.log('name',this.name, this.socket.address, 'error occured', err);
             this.deviceErrored();
         });
+    }
+
+    sendAction = (actionTitle, data) => {
+        if (!Array.isArray(this.actions)) return false;
+        for (const action of this.actions){
+            if (action.title.toLowerCase().trim()===actionTitle.toLowerCase().trim()){
+                switch (action.type.toLowerCase().trim()){
+                    case 'void':
+                        this.sendPacket(new Uint8Array([action.commandByte]));
+                        return true;
+                    case 'byte':
+                        this.sendPacket(new Uint8Array([action.commandByte, data]));
+                        return true;
+                }
+            }
+        }
+        return false;
     }
 
     pauseIncomingData = () => {
