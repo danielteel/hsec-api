@@ -136,7 +136,11 @@ class DeviceIO {
         }
         this.buffersWhilePaused=[];
     }
-
+    
+    onDeviceDatabaseDelete = () => {
+        this.deviceErrored();
+        console.log(this.name, 'device was deleted from database, closing connection');
+    }
     deviceErrored = () => {
         this.socket.destroy();
         this.socket=null;
@@ -144,12 +148,13 @@ class DeviceIO {
         this.packetState=PACKETSTATE.ERROR;
         this.netStatus=NETSTATUS.ERROR;
         this.onDone(this);
+        this.constructor.removeDevice(this);
     }
 
     sendPacket = (data) => {
         if (typeof data==='string') data=textEncoder.encode(data);
         if (data && data.length>0x0FFFF0){
-            console.log(this.name, this.socket.address, 'cant send a message bigger than 0x0FFFF0');
+            console.log(this.name, 'cant send a message bigger than 0x0FFFF0');
             return false;
         }
   
@@ -172,7 +177,7 @@ class DeviceIO {
             this.sendPacket(null);
         }else{
             if (this.clientHandshake[0]!==handshake){
-                console.log(this.name, this.socket.address, 'incorrect handshake, exepcted '+this.clientHandshake[0]+' but recvd '+handshake);
+                console.log(this.name, 'incorrect handshake, exepcted '+this.clientHandshake[0]+' but recvd '+handshake);
                 this.deviceErrored();
                 return;
             }
@@ -289,7 +294,7 @@ class DeviceIO {
                 }
                 i+=howFar-1;
             }else{
-                console.log('name',this.name, this.socket.address, 'unknown packet/net status', this.packetState+'/'+this.netStatus);
+                console.log('name',this.name, 'unknown packet/net status', this.packetState+'/'+this.netStatus);
                 this.deviceErrored();
                 return;
             }
