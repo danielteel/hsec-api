@@ -264,7 +264,7 @@ class DeviceIO {
                 }
 
                 if (this.payloadLength<0){
-                    console.log(this.name, 'device sent packet smaller than 0');
+                    console.log(this.name, 'device sent packet smaller than 0', this.payloadLength);
                     this.deviceErrored();
                     return;
                 }
