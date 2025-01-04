@@ -166,7 +166,6 @@ class DeviceIO {
 
     onFullPacket = (handshake, data) => {
         if (this.netStatus===NETSTATUS.OPENED){                        
-            console.log("name",this.name,"recieved initial handshake");
             this.clientHandshake[0]=handshake;
             this.clientHandshake[0]++;
             this.netStatus=NETSTATUS.READY;
@@ -184,11 +183,18 @@ class DeviceIO {
                 }else if (data[0]==='i'.charCodeAt(0) && data[1]==='='.charCodeAt(0)){
                     //Device sent interface information
                     this.actions=[];
-                    console.log(textDecoder.decode(data).slice(2));
                     const actions=textDecoder.decode(data).slice(2).split(',');
                     for (const action of actions){
                         const [title, type, commandByte] = action.split(':');
                         this.actions.push({title, type, commandByte});
+                    }
+                }else if (data[0]=='w'.charCodeAt(0) && data[1]==='='.charCodeAt(0)){
+                    console.log(textDecoder.decode(data).slice(2));
+                    const variables=textDecoder.decode(data).slice(2).split(',');
+                    this.weather={};
+                    for (const variable of variables){
+                        const [name, value] = variable.split(':');
+                        this.weather[name]=value;
                     }
                 }
             }
