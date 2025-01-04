@@ -89,7 +89,27 @@ router.get('/image/:device_id', [needKnex, authenticate.bind(null, 'member')], a
 
         return res.status(400).json({error: 'invalid device id or its not connected'});
     }catch(e){
-        console.error('ERROR GET /devices/list', req.body, e);
+        console.error('ERROR GET /devices/image', req.body, e);
+        return res.status(400).json({error: 'error'});
+    }
+});
+
+router.get('/weather/:device_id', [needKnex, authenticate.bind(null, 'member')], async (req, res) => {
+    try {
+        const device_id = Number(req.params.device_id);
+
+        const device=await getADevice(req.knex, req.user.role, device_id, true);
+        if (device && device.devio){
+            if (device.devio.weather){
+                return res.status(200).json(device.devio.weather);
+            }else{
+                return res.status(400).json({error: 'device hasnt sent any weather data yet'});
+            }
+        }
+
+        return res.status(400).json({error: 'invalid device id or its not connected'});
+    }catch(e){
+        console.error('ERROR GET /devices/weather', req.body, e);
         return res.status(400).json({error: 'error'});
     }
 });

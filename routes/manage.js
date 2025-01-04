@@ -67,4 +67,4 @@ router.post('/user/email', [needKnex, authenticate.bind(null, 'admin')], async (
         console.error('ERROR POST /manage/user/email', req.body, e);
         return res.status(400).json({error: 'error'});
     }
-})
+});
